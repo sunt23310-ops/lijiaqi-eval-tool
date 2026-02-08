@@ -13,8 +13,8 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({
       apiKey,
       baseURL: baseURL || undefined,
-      timeout: 50_000,    // 50 秒超时
-      maxRetries: 2,      // 最多重试 2 次
+      timeout: 10_000,    // 10 秒超时（5个维度串行，总计需在60秒内完成）
+      maxRetries: 0,      // 不重试，节省时间
     })
     this.model = model
   }
@@ -24,7 +24,7 @@ export class OpenAIProvider implements LLMProvider {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       temperature: options?.temperature ?? 0.3,
-      max_tokens: options?.maxTokens ?? 4096,
+      max_tokens: options?.maxTokens ?? 1024,
     })
 
     return {
