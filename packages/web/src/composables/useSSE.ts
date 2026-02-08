@@ -1,62 +1,125 @@
 import { ref } from 'vue'
-import { connectSSE } from '@/api/sseClient'
 import { useChatStore } from '@/stores/chatStore'
-import { getConfig } from '@/api/config'
+import { useAuthStore } from '@/stores/authStore'
 
+/**
+ * SSE 连接 composable
+ *
+ * 通过后端代理 (/eval/api/v1/sse/proxy) 转发到目标 SSE API
+ * 使用 fetch + ReadableStream 实现流式接收
+ */
 export function useSSE() {
   const abortController = ref<AbortController | null>(null)
   const ttft = ref<number | null>(null)
   const latency = ref<number | null>(null)
 
-  async function sendMessage(content: string, conversationId: string) {
+  function sendMessage(content: string, conversationId: string): Promise<void> {
     const chatStore = useChatStore()
+    const authStore = useAuthStore()
     const startTime = Date.now()
     let firstChunk = true
 
     chatStore.startStreaming()
 
-    // 获取 SSE API 配置
-    let sseUrl = ''
-    let sseToken = ''
-    try {
-      const configRes = await getConfig()
-      const config = (configRes as any).data ?? configRes
-      sseUrl = config.sseApiUrl || ''
-      sseToken = config.sseToken || ''
-    } catch {
-      // 使用默认配置
-    }
+    return new Promise(async (resolve, reject) => {
+      const controller = new AbortController()
+      abortController.value = controller
 
-    if (!sseUrl) {
-      chatStore.stopStreaming()
-      throw new Error('未配置 SSE API 地址，请在设置中配置')
-    }
-
-    abortController.value = connectSSE({
-      url: sseUrl,
-      token: sseToken,
-      conversationId,
-      content,
-      onMessage(text) {
-        if (firstChunk) {
-          ttft.value = Date.now() - startTime
-          firstChunk = false
-        }
-        chatStore.appendStreamChunk(text)
-      },
-      async onDone() {
-        latency.value = Date.now() - startTime
-        const fullContent = chatStore.streamingContent
-        chatStore.stopStreaming()
-        await chatStore.saveMessage('assistant', fullContent, {
-          latencyMs: latency.value,
-          ttftMs: ttft.value ?? undefined,
+      try {
+        const response = await fetch('/eval/api/v1/sse/proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            token: authStore.token,
+          },
+          body: JSON.stringify({ conversationId, messageType: 1, content }),
+          signal: controller.signal,
         })
-      },
-      onError(error) {
-        chatStore.stopStreaming()
-        console.error('SSE error:', error)
-      },
+
+        if (!response.ok || !response.body) {
+          chatStore.stopStreaming()
+          reject(new Error(`SSE 请求失败: HTTP ${response.status}`))
+          return
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+
+          const parts = buffer.split('\n\n')
+          buffer = parts.pop() || ''
+
+          for (const part of parts) {
+            for (const line of part.split('\n')) {
+              if (!line.startsWith('data:')) continue
+              const data = line.slice(5)
+
+              if (data === '[Done]') {
+                latency.value = Date.now() - startTime
+                const fullContent = chatStore.streamingContent
+                chatStore.stopStreaming()
+                await chatStore.saveMessage('assistant', fullContent, {
+                  latencyMs: latency.value,
+                  ttftMs: ttft.value ?? undefined,
+                })
+                resolve()
+                return
+              }
+              if (data === '[Done]Err') {
+                chatStore.stopStreaming()
+                reject(new Error('SSE 返回错误'))
+                return
+              }
+
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.content) {
+                  if (firstChunk) {
+                    ttft.value = Date.now() - startTime
+                    firstChunk = false
+                  }
+                  chatStore.appendStreamChunk(parsed.content)
+                }
+              } catch {
+                if (data.trim()) {
+                  if (firstChunk) {
+                    ttft.value = Date.now() - startTime
+                    firstChunk = false
+                  }
+                  chatStore.appendStreamChunk(data)
+                }
+              }
+            }
+          }
+        }
+
+        // 流正常结束但没有 [Done] 标记
+        const fullContent = chatStore.streamingContent
+        if (fullContent) {
+          latency.value = Date.now() - startTime
+          chatStore.stopStreaming()
+          await chatStore.saveMessage('assistant', fullContent, {
+            latencyMs: latency.value,
+            ttftMs: ttft.value ?? undefined,
+          })
+        } else {
+          chatStore.stopStreaming()
+        }
+        resolve()
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          chatStore.stopStreaming()
+          reject(err)
+        } else {
+          resolve()
+        }
+      }
     })
   }
 

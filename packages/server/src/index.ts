@@ -7,6 +7,8 @@
  */
 import express from 'express'
 import cors from 'cors'
+import crypto from 'crypto'
+import { PrismaClient } from '@prisma/client'
 import authRoutes from './routes/auth'
 import sessionRoutes from './routes/sessions'
 import evaluationRoutes from './routes/evaluation'
@@ -16,6 +18,7 @@ import configRoutes from './routes/config'
 import { authMiddleware } from './middleware/auth'
 
 const app = express()
+const prisma = new PrismaClient()
 const PORT = process.env.PORT || 3001
 
 app.use(cors())
@@ -27,13 +30,36 @@ app.use('/eval/public/v1/auth', authRoutes)
 // ─── API 路由（需要鉴权）─────────────────────────
 app.use('/eval/api/v1', authMiddleware)
 app.use('/eval/api/v1/sessions', sessionRoutes)
-app.use('/eval/api/v1', evaluationRoutes) // 评测路由内含 /sessions/:id/evaluate 和 /evaluations/:id
+app.use('/eval/api/v1', evaluationRoutes)
 app.use('/eval/api/v1/mock', mockRoutes)
 app.use('/eval/api/v1/sse', sseRoutes)
 app.use('/eval/api/v1/config', configRoutes)
 
-app.listen(PORT, () => {
-  console.log(`[eval-server] running at http://localhost:${PORT}`)
-})
+// ─── Seed 内置用户 + 启动 ────────────────────────
+async function seedUsers() {
+  const users = [
+    { id: 1, username: 'admin', password: 'admin123' },
+    { id: 2, username: 'test', password: 'test123' },
+  ]
+  for (const u of users) {
+    const hash = crypto.createHash('sha256').update(u.password).digest('hex')
+    await prisma.user.upsert({
+      where: { id: u.id },
+      update: {},
+      create: { id: u.id, username: u.username, passwordHash: hash },
+    })
+  }
+}
+
+seedUsers()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`[eval-server] running at http://localhost:${PORT}`)
+    })
+  })
+  .catch((err) => {
+    console.error('[eval-server] seed failed:', err)
+    process.exit(1)
+  })
 
 export default app

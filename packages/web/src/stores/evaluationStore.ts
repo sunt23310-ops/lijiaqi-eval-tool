@@ -15,7 +15,7 @@ export const useEvaluationStore = defineStore('evaluation', () => {
     if (evaluations.value.length === 1) {
       await loadDetail(evaluations.value[0].id)
     } else {
-      viewMode.value = evaluations.value.length > 0 ? 'history' : 'history'
+      viewMode.value = 'history'
       currentEvaluation.value = null
     }
   }

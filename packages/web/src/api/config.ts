@@ -1,17 +1,19 @@
 import request from './request'
 
 export interface AppConfig {
-  sseApiUrl: string
-  sseToken: string
+  sseApiBaseUrl: string
   llmProvider: string
-  llmApiKey: string
-  llmModel: string
+  openaiModel: string
+  anthropicModel: string
+  hasOpenaiKey: boolean
+  hasAnthropicKey: boolean
+  hasSseToken: boolean
 }
 
 export function getConfig() {
   return request.get<any, { code: number; data: AppConfig }>('/eval/api/v1/config')
 }
 
-export function updateConfig(config: Partial<AppConfig>) {
-  return request.put<any, { code: number; data: AppConfig }>('/eval/api/v1/config', config)
+export function updateConfig(config: Record<string, string>) {
+  return request.put<any, { code: number }>('/eval/api/v1/config', config)
 }

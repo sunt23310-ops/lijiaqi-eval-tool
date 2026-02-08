@@ -18,7 +18,11 @@ export function useChat() {
     await chatStore.saveMessage('user', content, { messageType: 1 })
 
     // 调用 SSE
-    await sendSSE(content, conversationId.value)
+    try {
+      await sendSSE(content, conversationId.value)
+    } catch (err: any) {
+      console.error('SSE 调用失败:', err.message)
+    }
   }
 
   async function startAutoSend(messageList: string[]) {

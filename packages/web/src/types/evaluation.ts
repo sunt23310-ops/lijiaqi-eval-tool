@@ -15,16 +15,16 @@ export interface Evaluation {
   contextScore: number
   contextReasoning: string
   contextDetails: Record<string, any>
-  fluencyScore: number
-  fluencyReasoning: string
-  fluencyDetails: Record<string, any>
+  personaScore: number
+  personaReasoning: string
+  personaDetails: Record<string, any>
   safetyScore: number
   safetyReasoning: string
   safetyDetails: Record<string, any>
   performanceScore: number
   performanceReasoning: string
   performanceDetails: Record<string, any>
-  suggestions: string[]
+  suggestions: Array<{ dimension: string; emoji: string; reasoning: string }>
   reportNarrative: string
   llmModelUsed: string
   createdAt: string
@@ -38,7 +38,7 @@ export interface EvaluationSummary {
   createdAt: string
   intentScore: number
   contextScore: number
-  fluencyScore: number
+  personaScore: number
   safetyScore: number
   performanceScore: number
 }
@@ -46,7 +46,7 @@ export interface EvaluationSummary {
 export const DIMENSION_CONFIG = [
   { key: 'intent', label: '意图识别', emoji: '🎯', weight: 0.2 },
   { key: 'context', label: '上下文理解', emoji: '🔗', weight: 0.2 },
-  { key: 'fluency', label: '表达拟人度', emoji: '🎭', weight: 0.25 },
+  { key: 'persona', label: '表达拟人度', emoji: '🎭', weight: 0.25 },
   { key: 'safety', label: '内容安全', emoji: '🛡️', weight: 0.2 },
   { key: 'performance', label: '响应性能', emoji: '⚡', weight: 0.15 },
 ] as const

@@ -164,6 +164,7 @@ export async function listEvaluations(sessionId: number) {
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      sessionId: true,
       status: true,
       overallScore: true,
       intentScore: true,

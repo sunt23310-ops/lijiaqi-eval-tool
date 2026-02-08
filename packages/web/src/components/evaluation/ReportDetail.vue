@@ -108,7 +108,7 @@ function getScore(key: string): number {
   const map: Record<string, number> = {
     intent: e.intentScore,
     context: e.contextScore,
-    fluency: e.fluencyScore,
+    persona: e.personaScore,
     safety: e.safetyScore,
     performance: e.performanceScore,
   }
@@ -120,7 +120,7 @@ function getReasoning(key: string): string {
   const map: Record<string, string> = {
     intent: e.intentReasoning,
     context: e.contextReasoning,
-    fluency: e.fluencyReasoning,
+    persona: e.personaReasoning,
     safety: e.safetyReasoning,
     performance: e.performanceReasoning,
   }

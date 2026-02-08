@@ -8,8 +8,12 @@
           :key="i"
           class="flex gap-2 text-sm text-[var(--md-on-surface-variant)]"
         >
-          <Lightbulb :size="14" class="flex-shrink-0 mt-0.5 text-[var(--md-tertiary)]" />
-          <span>{{ s }}</span>
+          <span class="flex-shrink-0">{{ s.emoji || '💡' }}</span>
+          <div>
+            <span class="font-medium text-[var(--md-on-surface)]">{{ s.dimension }}</span>
+            <span class="mx-1">—</span>
+            <span>{{ s.reasoning }}</span>
+          </div>
         </li>
       </ul>
     </div>
@@ -17,7 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { Lightbulb } from 'lucide-vue-next'
+interface Suggestion {
+  dimension: string
+  emoji: string
+  reasoning: string
+}
 
-defineProps<{ suggestions: string[] }>()
+defineProps<{ suggestions: Suggestion[] }>()
 </script>

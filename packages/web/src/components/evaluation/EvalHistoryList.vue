@@ -61,7 +61,7 @@ function getScore(item: EvaluationSummary, key: string): number {
   const scoreMap: Record<string, keyof EvaluationSummary> = {
     intent: 'intentScore',
     context: 'contextScore',
-    fluency: 'fluencyScore',
+    persona: 'personaScore',
     safety: 'safetyScore',
     performance: 'performanceScore',
   }
