@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd packages/web && npm install && npm run build",
+  "outputDirectory": "packages/web/dist",
+  "installCommand": "npm install --workspaces",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/eval/:path*", "destination": "/api" }
+  ]
+}

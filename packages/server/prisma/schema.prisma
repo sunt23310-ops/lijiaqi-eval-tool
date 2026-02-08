@@ -1,0 +1,105 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── 用户表 ────────────────────────────────────────
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  sessions    Session[]
+  evaluations Evaluation[]
+
+  @@map("users")
+}
+
+// ─── 会话表 ────────────────────────────────────────
+model Session {
+  id        Int       @id @default(autoincrement())
+  name      String
+  status    String    @default("active") // active | archived
+  userId    Int       @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  messages    Message[]
+  evaluations Evaluation[]
+
+  @@map("sessions")
+}
+
+// ─── 消息表 ────────────────────────────────────────
+model Message {
+  id          Int      @id @default(autoincrement())
+  sessionId   Int      @map("session_id")
+  role        String   // user | assistant
+  content     String
+  messageType Int      @default(1) @map("message_type") // 1=text
+  latencyMs   Int?     @map("latency_ms")   // AI 回复延迟
+  ttftMs      Int?     @map("ttft_ms")      // 首 token 延迟
+  rawResponse Json?    @map("raw_response") // SSE 原始响应
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// ─── 评测表 ────────────────────────────────────────
+model Evaluation {
+  id           Int      @id @default(autoincrement())
+  sessionId    Int      @map("session_id")
+  userId       Int      @map("user_id")
+  status       String   @default("pending") // pending | running | completed | failed
+
+  overallScore  Float?   @map("overall_score")
+
+  // 5 个维度各存 score + reasoning + details
+  intentScore      Float?  @map("intent_score")
+  intentReasoning  String? @map("intent_reasoning")
+  intentDetails    Json?   @map("intent_details")
+
+  contextScore     Float?  @map("context_score")
+  contextReasoning String? @map("context_reasoning")
+  contextDetails   Json?   @map("context_details")
+
+  personaScore     Float?  @map("persona_score")
+  personaReasoning String? @map("persona_reasoning")
+  personaDetails   Json?   @map("persona_details")
+
+  safetyScore      Float?  @map("safety_score")
+  safetyReasoning  String? @map("safety_reasoning")
+  safetyDetails    Json?   @map("safety_details")
+
+  performanceScore     Float?  @map("performance_score")
+  performanceReasoning String? @map("performance_reasoning")
+  performanceDetails   Json?   @map("performance_details")
+
+  suggestions     Json?    // 优化建议数组
+  reportNarrative String?  @map("report_narrative") // 评测报告叙述
+
+  llmModelUsed String?  @map("llm_model_used")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("evaluations")
+}
+
+// ─── 系统配置表 ──────────────────────────────────────
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}
