@@ -10,7 +10,12 @@ export class OpenAIProvider implements LLMProvider {
   private model: string
 
   constructor(apiKey: string, model = 'gpt-4o', baseURL?: string) {
-    this.client = new OpenAI({ apiKey, baseURL: baseURL || undefined })
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: baseURL || undefined,
+      timeout: 50_000,    // 50 秒超时
+      maxRetries: 2,      // 最多重试 2 次
+    })
     this.model = model
   }
 

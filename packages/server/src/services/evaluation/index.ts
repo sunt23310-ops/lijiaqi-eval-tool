@@ -47,13 +47,19 @@ async function evaluateDimension(key: string, conversation: string, metrics?: st
     prompt = prompt.replace('{metrics}', metrics)
   }
 
-  const response = await provider.chat(prompt)
-  const parsed = parseJSON(response.content)
-
-  return {
-    score: parsed.score ?? 0,
-    reasoning: parsed.reasoning ?? '',
-    details: parsed.details ?? {},
+  try {
+    console.log(`[evaluation] starting dimension "${key}"`)
+    const response = await provider.chat(prompt)
+    console.log(`[evaluation] dimension "${key}" completed`)
+    const parsed = parseJSON(response.content)
+    return {
+      score: parsed.score ?? 0,
+      reasoning: parsed.reasoning ?? '',
+      details: parsed.details ?? {},
+    }
+  } catch (err: any) {
+    console.error(`[evaluation] dimension "${key}" failed:`, err.message)
+    throw err
   }
 }
 
@@ -91,10 +97,16 @@ export async function runEvaluation(sessionId: number, userId: number) {
       error_count: aiMessages.filter((m) => !m.content).length,
     })
 
-    // 3. 并行调 5 个维度
-    const results = await Promise.allSettled(
-      DIMENSIONS.map((dim) => evaluateDimension(dim.key, conversation, metrics))
-    )
+    // 3. 顺序调 5 个维度（避免并发连接限制）
+    const results: PromiseSettledResult<DimensionResult>[] = []
+    for (const dim of DIMENSIONS) {
+      try {
+        const result = await evaluateDimension(dim.key, conversation, metrics)
+        results.push({ status: 'fulfilled', value: result })
+      } catch (err) {
+        results.push({ status: 'rejected', reason: err })
+      }
+    }
 
     // 4. 聚合结果
     const scores: Record<string, number> = {}
