@@ -15,6 +15,12 @@ const router = createRouter({
       component: () => import('@/views/EvalWorkspace.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/sensitive-words',
+      name: 'SensitiveWords',
+      component: () => import('@/views/SensitiveWordsView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
