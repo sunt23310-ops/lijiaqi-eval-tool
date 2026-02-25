@@ -341,10 +341,9 @@ function handleOnline(id: number) {
   const word = words.value.find(w => w.id === id)
   if (word) {
     word.status = '已上线'
-    word.onlineTime = new Date().toLocaleString('zh-CN', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-    }).replace(/\//g, '-')
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    word.onlineTime = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 }
 
@@ -354,10 +353,6 @@ function handleDelete(id: number) {
 }
 
 function handleAddWord(data: { name: string; category: string; risk: string; remark: string }) {
-  const now = new Date().toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  }).replace(/\//g, '-')
   words.value.push({
     id: Date.now(),
     name: data.name,

@@ -4,10 +4,9 @@
       <div
         v-if="modelValue"
         class="fixed inset-0 z-50 flex items-center justify-center"
-        @click.self="$emit('update:modelValue', false)"
       >
-        <!-- 遮罩 -->
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <!-- 遮罩：点击背景关闭弹窗 -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="$emit('update:modelValue', false)" />
 
         <!-- 弹窗 -->
         <div class="relative w-[520px] max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl flex flex-col">
