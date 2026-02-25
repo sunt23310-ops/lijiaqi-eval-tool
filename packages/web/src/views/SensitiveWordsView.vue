@@ -1,74 +1,70 @@
 <template>
   <div class="flex h-screen bg-[var(--md-surface)]">
     <!-- 左侧导航栏 -->
-    <aside class="w-[280px] flex-shrink-0 flex flex-col border-r border-[var(--md-outline-variant)] bg-[var(--md-surface-container)]">
-      <!-- 顶部标题 -->
-      <div class="p-5 border-b border-[var(--md-outline-variant)]">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-[var(--md-primary)] flex items-center justify-center">
-            <Shield :size="18" class="text-[var(--md-on-primary)]" />
+    <aside class="w-[280px] flex-shrink-0 flex flex-col bg-[var(--md-surface-container)]">
+      <!-- 顶部 Logo -->
+      <div class="flex flex-col gap-1 px-5 pt-5 pb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-[38px] h-[38px] rounded-[10px] bg-[var(--md-primary)] flex items-center justify-center flex-shrink-0">
+            <Sparkles :size="18" class="text-[var(--md-on-primary)]" />
           </div>
-          <div>
-            <h1 class="text-sm font-semibold text-[var(--md-on-surface)]">AI 李佳琦</h1>
-            <p class="text-xs text-[var(--md-on-surface-variant)]">评测管理平台</p>
+          <div class="flex flex-col gap-0.5">
+            <h1 class="text-[15px] font-semibold text-[var(--md-on-surface)] leading-none">AI 李佳琦</h1>
+            <p class="text-[11px] text-[var(--md-on-surface-variant)] leading-none">模型管理后台</p>
           </div>
         </div>
       </div>
 
       <!-- 导航菜单 -->
-      <nav class="flex-1 overflow-y-auto p-3 space-y-5">
+      <nav class="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-1">
         <!-- 主要功能 -->
-        <div>
-          <p class="text-xs font-medium text-[var(--md-on-surface-variant)] px-3 mb-1.5 uppercase tracking-wide">主要功能</p>
-          <div class="space-y-0.5">
-            <RouterLink
-              to="/"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
-            >
-              <MessageSquare :size="16" class="flex-shrink-0" />
-              新建会话
-            </RouterLink>
-            <RouterLink
-              to="/"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
-            >
-              <History :size="16" class="flex-shrink-0" />
-              评测历史
-            </RouterLink>
-            <RouterLink
-              to="/"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
-            >
-              <BarChart3 :size="16" class="flex-shrink-0" />
-              评测结果
-            </RouterLink>
-          </div>
-        </div>
+        <p class="text-[11px] font-medium text-[var(--md-on-surface-variant)] px-2 pt-2 pb-1.5">主要功能</p>
+        <RouterLink
+          to="/"
+          class="flex items-center gap-2.5 h-10 px-2 rounded-lg text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
+        >
+          <MessageSquare :size="16" class="flex-shrink-0" />
+          对话测试
+        </RouterLink>
+        <RouterLink
+          to="/"
+          class="flex items-center gap-2.5 h-10 px-2 rounded-lg text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
+        >
+          <LayoutTemplate :size="16" class="flex-shrink-0" />
+          预设场景
+        </RouterLink>
+        <RouterLink
+          to="/"
+          class="flex items-center gap-2.5 h-10 px-2 rounded-lg text-sm text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition-colors"
+        >
+          <History :size="16" class="flex-shrink-0" />
+          评测历史
+        </RouterLink>
 
         <!-- 系统管理 -->
-        <div>
-          <p class="text-xs font-medium text-[var(--md-on-surface-variant)] px-3 mb-1.5 uppercase tracking-wide">系统管理</p>
-          <div class="space-y-0.5">
-            <div
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium bg-[var(--md-secondary-container)] text-[var(--md-on-surface)] cursor-default"
-            >
-              <ShieldAlert :size="16" class="flex-shrink-0 text-[var(--md-primary)]" />
-              敏感词管理
-            </div>
-          </div>
+        <p class="text-[11px] font-medium text-[var(--md-on-surface-variant)] px-2 pt-3 pb-1.5">系统管理</p>
+        <div
+          class="flex items-center gap-2.5 h-10 px-2 rounded-lg text-sm font-medium bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] cursor-default"
+        >
+          <ShieldAlert :size="16" class="flex-shrink-0 text-[var(--md-primary)]" />
+          敏感词管理
         </div>
       </nav>
 
       <!-- 底部用户信息 -->
-      <div class="p-3 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-[var(--md-primary)] text-[var(--md-on-primary)] flex items-center justify-center text-sm font-medium">
-            {{ authStore.username?.charAt(0)?.toUpperCase() || 'U' }}
-          </div>
-          <span class="text-sm text-[var(--md-on-surface)]">{{ authStore.username }}</span>
+      <div
+        class="flex items-center gap-2.5 px-5 py-4"
+        style="border-top: 1px solid var(--md-outline-variant);"
+      >
+        <div class="w-9 h-9 rounded-full bg-[var(--md-tertiary-container)] text-[var(--md-tertiary)] flex items-center justify-center text-sm font-semibold flex-shrink-0">
+          {{ authStore.username?.charAt(0)?.toUpperCase() || 'A' }}
         </div>
-        <button @click="handleLogout" class="p-2 rounded-lg hover:bg-[var(--md-surface-container-high)] transition">
-          <LogOut :size="16" class="text-[var(--md-on-surface-variant)]" />
+        <div class="flex-1 min-w-0">
+          <p class="text-[13px] font-medium text-[var(--md-on-surface)] leading-tight truncate">{{ authStore.username }}</p>
+          <p class="text-[11px] text-[var(--md-on-surface-variant)] leading-tight">系统管理员</p>
+        </div>
+        <button @click="handleLogout" class="p-1.5 rounded-lg hover:bg-[var(--md-surface-container-high)] transition flex-shrink-0">
+          <LogOut :size="18" class="text-[var(--md-on-surface-variant)]" />
         </button>
       </div>
     </aside>
@@ -234,7 +230,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Shield, ShieldAlert, MessageSquare, History, BarChart3,
+  Sparkles, ShieldAlert, MessageSquare, LayoutTemplate, History,
   LogOut, Search, Plus, ToggleLeft, ToggleRight, Trash2,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
