@@ -40,6 +40,21 @@
       </div>
     </div>
 
+    <!-- 系统管理 -->
+    <div class="px-2 pb-2 border-t border-[var(--md-outline-variant)]">
+      <p class="text-xs font-medium text-[var(--md-on-surface-variant)] px-3 pt-3 pb-1.5 uppercase tracking-wide">系统管理</p>
+      <RouterLink
+        to="/sensitive-words"
+        class="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors"
+        :class="$route.path === '/sensitive-words'
+          ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-surface)] font-medium'
+          : 'text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'"
+      >
+        <ShieldAlert :size="16" class="flex-shrink-0" />
+        敏感词管理
+      </RouterLink>
+    </div>
+
     <!-- 底部用户信息 -->
     <div class="p-3 border-t border-[var(--md-outline-variant)] flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -57,8 +72,8 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Plus, MessageSquare, Trash2, LogOut } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
+import { Plus, MessageSquare, Trash2, LogOut, ShieldAlert } from 'lucide-vue-next'
 import { useChatStore } from '@/stores/chatStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useEvaluationStore } from '@/stores/evaluationStore'
@@ -67,6 +82,7 @@ const chatStore = useChatStore()
 const authStore = useAuthStore()
 const evalStore = useEvaluationStore()
 const router = useRouter()
+const route = useRoute()
 
 onMounted(() => {
   chatStore.fetchSessions()
