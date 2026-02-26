@@ -91,11 +91,13 @@ onMounted(() => {
 async function handleCreate() {
   await chatStore.createSession('新会话')
   evalStore.reset()
+  if (route.name !== 'Workspace') router.push('/')
 }
 
 async function handleSelect(id: number) {
   await chatStore.selectSession(id)
   await evalStore.fetchEvaluations(id)
+  if (route.name !== 'Workspace') router.push('/')
 }
 
 async function handleDelete(id: number) {
