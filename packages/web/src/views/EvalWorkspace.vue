@@ -1,7 +1,9 @@
 <template>
-  <AppLayout />
+  <ChatPanel />
+  <EvaluationPanel />
 </template>
 
 <script setup lang="ts">
-import AppLayout from '@/components/layout/AppLayout.vue'
+import ChatPanel from '@/components/chat/ChatPanel.vue'
+import EvaluationPanel from '@/components/evaluation/EvaluationPanel.vue'
 </script>

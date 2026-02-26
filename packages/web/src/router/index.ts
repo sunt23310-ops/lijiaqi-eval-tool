@@ -11,15 +11,20 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'Workspace',
-      component: () => import('@/views/EvalWorkspace.vue'),
+      component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true },
-    },
-    {
-      path: '/sensitive-words',
-      name: 'SensitiveWords',
-      component: () => import('@/views/SensitiveWordsView.vue'),
-      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'Workspace',
+          component: () => import('@/views/EvalWorkspace.vue'),
+        },
+        {
+          path: 'sensitive-words',
+          name: 'SensitiveWords',
+          component: () => import('@/views/SensitiveWordsView.vue'),
+        },
+      ],
     },
   ],
 })
