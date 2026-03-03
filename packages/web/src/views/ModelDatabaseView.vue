@@ -85,7 +85,11 @@
             <!-- 文件名 -->
             <div class="flex-1 min-w-0 flex items-center gap-2.5">
               <component :is="fileIcon(file.format)" :size="18" :class="fileIconColor(file.format)" class="flex-shrink-0" />
-              <span class="text-sm font-medium text-[var(--md-on-surface)] truncate" :title="file.name">{{ file.name }}</span>
+              <button
+                @click="openPreview(file)"
+                class="text-sm font-medium text-[var(--md-on-surface)] truncate hover:text-[var(--md-primary)] hover:underline text-left"
+                :title="file.name"
+              >{{ file.name }}</button>
             </div>
             <!-- 格式 -->
             <div class="w-[76px] flex-shrink-0 flex justify-center">
@@ -154,6 +158,49 @@
         </div>
       </div>
     </div>
+
+    <!-- 文件预览抽屉 -->
+    <Transition name="drawer">
+      <div v-if="previewFile" class="fixed inset-0 z-50 flex">
+        <!-- 遮罩 -->
+        <div class="flex-1 bg-black/30" @click="closePreview" />
+        <!-- 抽屉主体 -->
+        <div class="w-[600px] bg-white flex flex-col shadow-2xl">
+          <!-- 抽屉头部 -->
+          <div class="px-6 py-4 border-b border-[var(--md-outline-variant)] flex items-start gap-3 flex-shrink-0">
+            <component :is="fileIcon(previewFile.format)" :size="20" :class="fileIconColor(previewFile.format)" class="flex-shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-semibold text-[var(--md-on-surface)] break-all leading-snug">{{ previewFile.name }}</h3>
+              <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded text-xs font-semibold" :class="formatBadgeClass(previewFile.format)">{{ previewFile.format }}</span>
+                <span class="px-2 py-0.5 rounded text-xs font-medium" :class="qualityBadgeClass(previewFile.quality)">{{ previewFile.quality }}</span>
+                <span class="px-2 py-0.5 rounded text-xs font-medium" :class="sourceBadgeClass(previewFile.source)">{{ previewFile.source }}</span>
+                <span class="text-xs text-[var(--md-on-surface-variant)]">{{ previewFile.validUntil }}</span>
+                <span v-if="previewFile.sizeBytes" class="text-xs text-[var(--md-on-surface-variant)]">{{ formatSize(previewFile.sizeBytes) }}</span>
+              </div>
+            </div>
+            <button @click="closePreview" class="p-1.5 rounded-lg hover:bg-[var(--md-surface-container-high)] transition flex-shrink-0">
+              <X :size="18" class="text-[var(--md-on-surface-variant)]" />
+            </button>
+          </div>
+          <!-- 内容区 -->
+          <div class="flex-1 overflow-y-auto px-6 py-5">
+            <div v-if="previewLoading" class="flex items-center justify-center py-16 text-sm text-[var(--md-on-surface-variant)]">
+              <Loader2 :size="20" class="animate-spin mr-2" />
+              加载中...
+            </div>
+            <div
+              v-else-if="previewContent"
+              class="prose prose-sm max-w-none text-[var(--md-on-surface)]"
+              v-html="previewContent"
+            />
+            <div v-else class="text-center py-16 text-sm text-[var(--md-on-surface-variant)]">
+              暂无可预览内容
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 上传弹窗 -->
     <div
@@ -271,9 +318,12 @@ import {
   FileText, FileImage, Music, Video, File,
 } from 'lucide-vue-next'
 import {
-  listModelFiles, createModelFile, updateModelFile, deleteModelFile,
+  listModelFiles, getModelFile, createModelFile, updateModelFile, deleteModelFile,
   type ModelFile,
 } from '@/api/modelFiles'
+import MarkdownIt from 'markdown-it'
+
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
 
 // ── 状态 ──────────────────────────────────────────────
 const files       = ref<ModelFile[]>([])
@@ -281,6 +331,9 @@ const loading     = ref(false)
 const showUploadModal = ref(false)
 const uploading   = ref(false)
 const editFile    = ref<ModelFile | null>(null)
+const previewFile    = ref<ModelFile | null>(null)
+const previewContent = ref('')
+const previewLoading = ref(false)
 
 // ── 筛选 ──────────────────────────────────────────────
 const activeFormat  = ref('全部')
@@ -388,6 +441,31 @@ async function handleDelete(id: number) {
   if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
 }
 
+// ── 文件预览 ──────────────────────────────────────────
+async function openPreview(file: ModelFile) {
+  previewFile.value = file
+  previewContent.value = ''
+  previewLoading.value = true
+  try {
+    const res = await getModelFile(file.id)
+    if (res.code === 200 && res.data.content) {
+      previewContent.value = md.render(res.data.content)
+    }
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function closePreview() {
+  previewFile.value = null
+  previewContent.value = ''
+}
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  return `${(bytes / 1024).toFixed(1)} KB`
+}
+
 // ── 样式映射 ──────────────────────────────────────────
 const formatTabs = [
   { label: '全部',     value: '全部' },
@@ -435,3 +513,39 @@ function sourceBadgeClass(source: string) {
   return map[source] ?? 'bg-slate-100 text-slate-600'
 }
 </script>
+
+<style scoped>
+/* 抽屉滑入动画 */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.2s ease;
+}
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 0.25s ease;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+
+/* Markdown 内容样式 */
+:deep(.prose) {
+  line-height: 1.75;
+  color: var(--md-on-surface);
+}
+:deep(.prose h1) { font-size: 1.25rem; font-weight: 700; margin: 1.25rem 0 0.75rem; color: var(--md-on-surface); }
+:deep(.prose h2) { font-size: 1.1rem;  font-weight: 600; margin: 1rem 0 0.5rem;    color: var(--md-on-surface); border-bottom: 1px solid var(--md-outline-variant); padding-bottom: 0.35rem; }
+:deep(.prose h3) { font-size: 0.95rem; font-weight: 600; margin: 0.875rem 0 0.4rem; color: var(--md-on-surface); }
+:deep(.prose p)  { margin: 0.5rem 0; font-size: 0.875rem; }
+:deep(.prose ul),
+:deep(.prose ol) { margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.875rem; }
+:deep(.prose li) { margin: 0.25rem 0; }
+:deep(.prose strong) { font-weight: 600; color: var(--md-on-surface); }
+:deep(.prose hr) { border-color: var(--md-outline-variant); margin: 1rem 0; }
+:deep(.prose table) { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.75rem 0; }
+:deep(.prose th) { background: #F8FAFC; font-weight: 600; padding: 0.4rem 0.75rem; border: 1px solid var(--md-outline-variant); text-align: left; }
+:deep(.prose td) { padding: 0.4rem 0.75rem; border: 1px solid var(--md-outline-variant); }
+:deep(.prose code) { background: #F1F5F9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; }
+:deep(.prose blockquote) { border-left: 3px solid var(--md-primary); padding-left: 1rem; color: var(--md-on-surface-variant); font-style: italic; margin: 0.75rem 0; }
+</style>

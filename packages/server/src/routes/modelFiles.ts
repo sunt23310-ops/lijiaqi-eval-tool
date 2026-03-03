@@ -16,6 +16,17 @@ router.get('/', async (_req, res) => {
   }
 })
 
+// 获取单个文件（含内容）
+router.get('/:id', async (req, res) => {
+  try {
+    const file = await modelFileService.getModelFile(Number(req.params.id))
+    if (!file) return res.json({ code: 404, message: '文件不存在' })
+    res.json({ code: 200, data: file })
+  } catch (err: any) {
+    res.json({ code: 500, message: err.message })
+  }
+})
+
 // 新增文件记录
 router.post('/', async (req, res) => {
   try {

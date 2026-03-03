@@ -104,6 +104,7 @@ model ModelFile {
   validUntil String   @map("valid_until")
   source     String   // 官方开放, 自采集, 民间转载
   sizeBytes  Int?     @map("size_bytes")
+  content    String?  // 文件文本内容（MD/txt 等可读格式）
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
   @@map("model_files")

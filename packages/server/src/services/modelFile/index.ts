@@ -15,7 +15,15 @@ export interface CreateModelFileInput {
 }
 
 export async function listModelFiles() {
-  return prisma.modelFile.findMany({ orderBy: { uploadedAt: 'asc' } })
+  // 列表不返回 content，减少传输量
+  return prisma.modelFile.findMany({
+    select: { id: true, name: true, format: true, quality: true, validUntil: true, source: true, sizeBytes: true, uploadedAt: true },
+    orderBy: { uploadedAt: 'asc' },
+  })
+}
+
+export async function getModelFile(id: number) {
+  return prisma.modelFile.findUnique({ where: { id } })
 }
 
 export async function createModelFile(data: CreateModelFileInput) {

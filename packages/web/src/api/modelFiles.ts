@@ -8,6 +8,7 @@ export interface ModelFile {
   validUntil: string
   source: string
   sizeBytes: number | null
+  content?: string | null
   uploadedAt: string
 }
 
@@ -18,6 +19,10 @@ export interface CreateModelFileInput {
   validUntil: string
   source: string
   sizeBytes?: number
+}
+
+export function getModelFile(id: number) {
+  return request.get<any, { code: number; data: ModelFile }>(`/eval/api/v1/model-files/${id}`)
 }
 
 export function listModelFiles() {
