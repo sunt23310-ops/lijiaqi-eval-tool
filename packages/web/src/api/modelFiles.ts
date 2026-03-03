@@ -8,6 +8,7 @@ export interface ModelFile {
   validUntil: string
   source: string
   sizeBytes: number | null
+  sortOrder: number
   content?: string | null
   uploadedAt: string
 }

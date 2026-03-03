@@ -12,13 +12,15 @@ export interface CreateModelFileInput {
   validUntil: string
   source: string
   sizeBytes?: number
+  content?: string
+  sortOrder?: number
 }
 
 export async function listModelFiles() {
-  // 列表不返回 content，减少传输量
+  // 列表不返回 content，减少传输量；按 sortOrder 排序
   return prisma.modelFile.findMany({
-    select: { id: true, name: true, format: true, quality: true, validUntil: true, source: true, sizeBytes: true, uploadedAt: true },
-    orderBy: { uploadedAt: 'asc' },
+    select: { id: true, name: true, format: true, quality: true, validUntil: true, source: true, sizeBytes: true, sortOrder: true, uploadedAt: true },
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   })
 }
 

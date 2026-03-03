@@ -194,6 +194,13 @@
               class="prose prose-sm max-w-none text-[var(--md-on-surface)]"
               v-html="previewContent"
             />
+            <div v-else-if="previewFile?.format === 'JPG' || previewFile?.format === 'MP3' || previewFile?.format === 'MP4'"
+              class="flex flex-col items-center justify-center py-16 gap-3 text-[var(--md-on-surface-variant)]"
+            >
+              <component :is="fileIcon(previewFile.format)" :size="40" :class="fileIconColor(previewFile.format)" />
+              <p class="text-sm font-medium">{{ previewFile.format === 'JPG' ? '图片' : '音视频' }}文件暂不支持在线预览</p>
+              <p v-if="previewFile.sizeBytes" class="text-xs">大小：{{ formatSize(previewFile.sizeBytes) }}</p>
+            </div>
             <div v-else class="text-center py-16 text-sm text-[var(--md-on-surface-variant)]">
               暂无可预览内容
             </div>
