@@ -24,6 +24,11 @@ const router = createRouter({
           name: 'SensitiveWords',
           component: () => import('@/views/SensitiveWordsView.vue'),
         },
+        {
+          path: 'model-database',
+          name: 'ModelDatabase',
+          component: () => import('@/views/ModelDatabaseView.vue'),
+        },
       ],
     },
   ],

@@ -53,6 +53,16 @@
         <ShieldAlert :size="16" class="flex-shrink-0" />
         敏感词管理
       </RouterLink>
+      <RouterLink
+        to="/model-database"
+        class="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors"
+        :class="$route.path === '/model-database'
+          ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-surface)] font-medium'
+          : 'text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'"
+      >
+        <Database :size="16" class="flex-shrink-0" />
+        AI 模型数据库
+      </RouterLink>
     </div>
 
     <!-- 底部用户信息 -->
@@ -73,7 +83,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Plus, MessageSquare, Trash2, LogOut, ShieldAlert } from 'lucide-vue-next'
+import { Plus, MessageSquare, Trash2, LogOut, ShieldAlert, Database } from 'lucide-vue-next'
 import { useChatStore } from '@/stores/chatStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useEvaluationStore } from '@/stores/evaluationStore'
