@@ -189,16 +189,22 @@
               <Loader2 :size="20" class="animate-spin mr-2" />
               加载中...
             </div>
+            <!-- 图片预览 -->
+            <div v-else-if="previewIsImage" class="flex flex-col items-center gap-3">
+              <img :src="previewContent" class="w-full rounded-xl object-contain" :alt="previewFile?.name" />
+            </div>
+            <!-- Markdown 预览 -->
             <div
               v-else-if="previewContent"
               class="prose prose-sm max-w-none text-[var(--md-on-surface)]"
               v-html="previewContent"
             />
-            <div v-else-if="previewFile?.format === 'JPG' || previewFile?.format === 'MP3' || previewFile?.format === 'MP4'"
+            <!-- 音视频占位 -->
+            <div v-else-if="previewFile?.format === 'MP3' || previewFile?.format === 'MP4'"
               class="flex flex-col items-center justify-center py-16 gap-3 text-[var(--md-on-surface-variant)]"
             >
               <component :is="fileIcon(previewFile.format)" :size="40" :class="fileIconColor(previewFile.format)" />
-              <p class="text-sm font-medium">{{ previewFile.format === 'JPG' ? '图片' : '音视频' }}文件暂不支持在线预览</p>
+              <p class="text-sm font-medium">音视频文件暂不支持在线预览</p>
               <p v-if="previewFile.sizeBytes" class="text-xs">大小：{{ formatSize(previewFile.sizeBytes) }}</p>
             </div>
             <div v-else class="text-center py-16 text-sm text-[var(--md-on-surface-variant)]">
@@ -341,6 +347,7 @@ const editFile    = ref<ModelFile | null>(null)
 const previewFile    = ref<ModelFile | null>(null)
 const previewContent = ref('')
 const previewLoading = ref(false)
+const previewIsImage = computed(() => previewContent.value.startsWith('data:image/'))
 
 // ── 筛选 ──────────────────────────────────────────────
 const activeFormat  = ref('全部')
@@ -456,7 +463,13 @@ async function openPreview(file: ModelFile) {
   try {
     const res = await getModelFile(file.id)
     if (res.code === 200 && res.data.content) {
-      previewContent.value = md.render(res.data.content)
+      if (res.data.content.startsWith('data:image/')) {
+        // 图片：直接作为 src 使用
+        previewContent.value = res.data.content
+      } else {
+        // 文本：渲染 Markdown
+        previewContent.value = md.render(res.data.content)
+      }
     }
   } finally {
     previewLoading.value = false
