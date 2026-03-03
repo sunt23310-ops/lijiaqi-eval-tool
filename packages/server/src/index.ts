@@ -15,6 +15,7 @@ import evaluationRoutes from './routes/evaluation'
 import mockRoutes from './routes/mock'
 import sseRoutes from './routes/sse'
 import configRoutes from './routes/config'
+import modelFilesRoutes from './routes/modelFiles'
 import { authMiddleware } from './middleware/auth'
 
 const app = express()
@@ -63,6 +64,7 @@ app.use('/eval/api/v1', evaluationRoutes)
 app.use('/eval/api/v1/mock', mockRoutes)
 app.use('/eval/api/v1/sse', sseRoutes)
 app.use('/eval/api/v1/config', configRoutes)
+app.use('/eval/api/v1/model-files', modelFilesRoutes)
 
 // ─── 仅在非 Vercel 环境下启动 HTTP server ────────
 if (!process.env.VERCEL) {

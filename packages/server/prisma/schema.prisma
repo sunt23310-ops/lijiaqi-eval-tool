@@ -95,6 +95,20 @@ model Evaluation {
   @@map("evaluations")
 }
 
+// ─── AI 模型数据库文件表 ──────────────────────────────
+model ModelFile {
+  id         Int      @id @default(autoincrement())
+  name       String
+  format     String   // MD, PDF, Word, JPG, MP3, MP4
+  quality    String   // 高, 中, 低
+  validUntil String   @map("valid_until")
+  source     String   // 官方开放, 自采集, 民间转载
+  sizeBytes  Int?     @map("size_bytes")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  @@map("model_files")
+}
+
 // ─── 系统配置表 ──────────────────────────────────────
 model SystemConfig {
   key       String   @id
