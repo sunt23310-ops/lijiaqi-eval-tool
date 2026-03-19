@@ -31,13 +31,18 @@
 
             <!-- 敏感词内容 -->
             <div class="space-y-2">
-              <label class="text-sm font-medium text-[var(--md-on-surface)]">
-                敏感词内容 <span class="text-[var(--md-error)]">*</span>
-              </label>
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-medium text-[var(--md-on-surface)]">
+                  敏感词内容 <span class="text-[var(--md-error)]">*</span>
+                </label>
+                <span v-if="wordCount > 0" class="text-xs text-[var(--md-on-surface-variant)]">
+                  将添加 <strong class="text-[var(--md-primary)]">{{ wordCount }}</strong> 个词条
+                </span>
+              </div>
               <textarea
                 v-model="form.name"
-                rows="3"
-                placeholder="请输入敏感词，多个词请换行分隔..."
+                rows="4"
+                placeholder="请输入敏感词，支持批量添加：每行一个词语&#10;例如：&#10;色情&#10;赌博&#10;暴力"
                 class="w-full px-4 py-3 rounded-xl border border-[var(--md-outline-variant)] bg-[var(--md-surface)] text-sm text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)] resize-none outline-none focus:border-[var(--md-primary)] focus:ring-2 focus:ring-[var(--md-primary)]/20 transition"
               />
             </div>
@@ -120,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { ShieldAlert, X, CirclePlus } from 'lucide-vue-next'
 
 // ── Props / Emits ─────────────────────────────────────
@@ -131,8 +136,13 @@ const emit = defineEmits<{
 }>()
 
 // ── 表单 ──────────────────────────────────────────────
-const defaultForm = () => ({ name: '', category: '违禁词', risk: '高风险', remark: '' })
+const defaultForm = () => ({ name: '', category: '涉黄涉政', risk: '高风险', remark: '' })
 const form = reactive(defaultForm())
+
+// 词条计数
+const wordCount = computed(() => {
+  return form.name.split(/\n/).map(l => l.trim()).filter(Boolean).length
+})
 
 // 弹窗关闭时重置表单
 watch(() => props.modelValue, (val) => {
@@ -140,7 +150,7 @@ watch(() => props.modelValue, (val) => {
 })
 
 // ── 选项 ──────────────────────────────────────────────
-const categories = ['违禁词', '竞品词', '敏感话题', '其他']
+const categories = ['涉黄涉政', '暴力犯罪', '极端情绪', '隐私合规', '专业领域', '商业竞品']
 
 const riskOptions = [
   {

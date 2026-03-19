@@ -36,7 +36,7 @@
           </div>
 
           <!-- 质量 + 来源筛选 chip -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <button
               v-for="chip in qualityChips"
               :key="chip.value"
@@ -46,9 +46,9 @@
             >
               {{ chip.label }}
             </button>
-            <div class="w-px h-4 bg-[var(--md-outline-variant)]"></div>
+            <div v-if="dynamicSourceChips.length" class="w-px h-4 bg-[var(--md-outline-variant)]"></div>
             <button
-              v-for="chip in sourceChips"
+              v-for="chip in dynamicSourceChips"
               :key="chip.value"
               @click="setSource(chip.value)"
               class="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
@@ -59,13 +59,31 @@
           </div>
         </div>
 
-        <!-- 表头 -->
+        <!-- 表头（可排序） -->
         <div class="flex items-center px-6 py-2 bg-[#F8FAFC] text-xs font-medium text-[var(--md-on-surface-variant)] border-b border-[var(--md-outline-variant)]">
           <div class="flex-1 min-w-0">文件名 / 来源信息</div>
           <div class="w-[76px] flex-shrink-0 text-center">格式</div>
-          <div class="w-[88px] flex-shrink-0 text-center">数据质量等级</div>
-          <div class="w-[120px] flex-shrink-0 text-center">数据时效性</div>
-          <div class="w-[110px] flex-shrink-0 text-center">数据来源</div>
+          <button
+            @click="toggleSort('quality')"
+            class="w-[88px] flex-shrink-0 flex items-center justify-center gap-1 hover:text-[var(--md-primary)] transition cursor-pointer"
+          >
+            数据质量
+            <component :is="sortIcon('quality')" :size="12" />
+          </button>
+          <button
+            @click="toggleSort('validUntil')"
+            class="w-[120px] flex-shrink-0 flex items-center justify-center gap-1 hover:text-[var(--md-primary)] transition cursor-pointer"
+          >
+            数据时效
+            <component :is="sortIcon('validUntil')" :size="12" />
+          </button>
+          <button
+            @click="toggleSort('source')"
+            class="w-[110px] flex-shrink-0 flex items-center justify-center gap-1 hover:text-[var(--md-primary)] transition cursor-pointer"
+          >
+            数据来源
+            <component :is="sortIcon('source')" :size="12" />
+          </button>
           <div class="w-[80px] flex-shrink-0 text-center">操作</div>
         </div>
 
@@ -256,12 +274,42 @@
           </div>
           <div>
             <label class="text-xs font-medium text-[var(--md-on-surface-variant)] mb-1 block">数据来源</label>
-            <select v-model="uploadForm.source" class="w-full h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-sm bg-white outline-none focus:border-[var(--md-primary)]">
-              <option value="">请选择</option>
-              <option>官方开放</option>
-              <option>自采集</option>
-              <option>民间转载</option>
-            </select>
+            <!-- 自定义来源选择 -->
+            <div v-if="!showNewSourceInput" class="flex gap-2">
+              <select v-model="uploadForm.source" class="flex-1 h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-sm bg-white outline-none focus:border-[var(--md-primary)]">
+                <option value="">请选择</option>
+                <option v-for="s in allSources" :key="s">{{ s }}</option>
+              </select>
+              <button
+                @click="showNewSourceInput = true"
+                class="h-9 px-3 rounded-lg border border-dashed border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] hover:border-[var(--md-primary)] hover:text-[var(--md-primary)] transition flex items-center gap-1"
+              >
+                <Plus :size="14" />
+                新建
+              </button>
+            </div>
+            <div v-else class="flex gap-2">
+              <input
+                v-model="newSourceName"
+                type="text"
+                placeholder="输入新来源名称"
+                class="flex-1 h-9 px-3 rounded-lg border border-[var(--md-primary)] text-sm bg-white outline-none ring-2 ring-[var(--md-primary)]/20"
+                @keyup.enter="confirmNewSource"
+              />
+              <button
+                @click="confirmNewSource"
+                :disabled="!newSourceName.trim()"
+                class="h-9 px-3 rounded-lg bg-[var(--md-primary)] text-[var(--md-on-primary)] text-xs font-medium hover:opacity-90 transition disabled:opacity-50"
+              >
+                确认
+              </button>
+              <button
+                @click="showNewSourceInput = false; newSourceName = ''"
+                class="h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition"
+              >
+                取消
+              </button>
+            </div>
           </div>
         </div>
 
@@ -306,9 +354,40 @@
           </div>
           <div>
             <label class="text-xs font-medium text-[var(--md-on-surface-variant)] mb-1 block">数据来源</label>
-            <select v-model="editForm.source" class="w-full h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-sm bg-white outline-none focus:border-[var(--md-primary)]">
-              <option>官方开放</option><option>自采集</option><option>民间转载</option>
-            </select>
+            <div v-if="!showEditSourceInput" class="flex gap-2">
+              <select v-model="editForm.source" class="flex-1 h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-sm bg-white outline-none focus:border-[var(--md-primary)]">
+                <option v-for="s in allSources" :key="s">{{ s }}</option>
+              </select>
+              <button
+                @click="showEditSourceInput = true"
+                class="h-9 px-3 rounded-lg border border-dashed border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] hover:border-[var(--md-primary)] hover:text-[var(--md-primary)] transition flex items-center gap-1"
+              >
+                <Plus :size="14" />
+                新建
+              </button>
+            </div>
+            <div v-else class="flex gap-2">
+              <input
+                v-model="editNewSourceName"
+                type="text"
+                placeholder="输入新来源名称"
+                class="flex-1 h-9 px-3 rounded-lg border border-[var(--md-primary)] text-sm bg-white outline-none ring-2 ring-[var(--md-primary)]/20"
+                @keyup.enter="confirmEditNewSource"
+              />
+              <button
+                @click="confirmEditNewSource"
+                :disabled="!editNewSourceName.trim()"
+                class="h-9 px-3 rounded-lg bg-[var(--md-primary)] text-[var(--md-on-primary)] text-xs font-medium hover:opacity-90 transition disabled:opacity-50"
+              >
+                确认
+              </button>
+              <button
+                @click="showEditSourceInput = false; editNewSourceName = ''"
+                class="h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] text-xs text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)] transition"
+              >
+                取消
+              </button>
+            </div>
           </div>
         </div>
         <div class="flex justify-end gap-2">
@@ -328,7 +407,8 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   Database, Upload, Pencil, Trash2, ChevronLeft, ChevronRight, X, Loader2,
-  FileText, FileImage, Music, Video, File,
+  FileText, FileImage, Music, Video, File, Plus,
+  ArrowUpDown, ChevronUp, ChevronDown,
 } from 'lucide-vue-next'
 import {
   listKnowledgeFiles, getKnowledgeFile, createKnowledgeFile, updateKnowledgeFile, deleteKnowledgeFile,
@@ -349,12 +429,103 @@ const previewContent = ref('')
 const previewLoading = ref(false)
 const previewIsImage = computed(() => previewContent.value.startsWith('data:image/'))
 
+// ── 自定义来源 ────────────────────────────────────────
+const PRESET_SOURCES = ['官方开放', '自采集', '民间转载']
+const STORAGE_KEY = 'kb-custom-sources'
+
+function loadCustomSources(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch { return [] }
+}
+function saveCustomSources(sources: string[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sources))
+}
+
+const customSources = ref<string[]>(loadCustomSources())
+const allSources = computed(() => [...PRESET_SOURCES, ...customSources.value])
+
+// 上传弹窗新建来源
+const showNewSourceInput = ref(false)
+const newSourceName = ref('')
+function confirmNewSource() {
+  const name = newSourceName.value.trim()
+  if (!name || allSources.value.includes(name)) {
+    showNewSourceInput.value = false
+    if (name) uploadForm.value.source = name
+    newSourceName.value = ''
+    return
+  }
+  customSources.value.push(name)
+  saveCustomSources(customSources.value)
+  uploadForm.value.source = name
+  showNewSourceInput.value = false
+  newSourceName.value = ''
+}
+
+// 编辑弹窗新建来源
+const showEditSourceInput = ref(false)
+const editNewSourceName = ref('')
+function confirmEditNewSource() {
+  const name = editNewSourceName.value.trim()
+  if (!name || allSources.value.includes(name)) {
+    showEditSourceInput.value = false
+    if (name) editForm.value.source = name
+    editNewSourceName.value = ''
+    return
+  }
+  customSources.value.push(name)
+  saveCustomSources(customSources.value)
+  editForm.value.source = name
+  showEditSourceInput.value = false
+  editNewSourceName.value = ''
+}
+
 // ── 筛选 ──────────────────────────────────────────────
 const activeFormat  = ref('全部')
 const activeQuality = ref('')
 const activeSource  = ref('')
 const currentPage   = ref(1)
 const PER_PAGE      = 15
+
+// ── 排序 ──────────────────────────────────────────────
+type SortField = 'quality' | 'validUntil' | 'source' | ''
+const sortField     = ref<SortField>('')
+const sortDirection = ref<'asc' | 'desc'>('desc')
+
+function toggleSort(field: SortField) {
+  if (sortField.value === field) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDirection.value = 'desc'
+  }
+  currentPage.value = 1
+}
+
+function sortIcon(field: SortField) {
+  if (sortField.value !== field) return ArrowUpDown
+  return sortDirection.value === 'asc' ? ChevronUp : ChevronDown
+}
+
+const QUALITY_ORDER: Record<string, number> = { '高': 3, '中': 2, '低': 1 }
+
+function compareFiles(a: KnowledgeFile, b: KnowledgeFile): number {
+  const field = sortField.value
+  if (!field) return 0
+  let cmp = 0
+  if (field === 'quality') {
+    cmp = (QUALITY_ORDER[a.quality] ?? 0) - (QUALITY_ORDER[b.quality] ?? 0)
+  } else if (field === 'validUntil') {
+    // "长期有效" sorts first (highest)
+    const aVal = a.validUntil === '长期有效' ? '9999' : a.validUntil
+    const bVal = b.validUntil === '长期有效' ? '9999' : b.validUntil
+    cmp = aVal.localeCompare(bVal)
+  } else if (field === 'source') {
+    cmp = a.source.localeCompare(b.source)
+  }
+  return sortDirection.value === 'asc' ? cmp : -cmp
+}
 
 // ── 加载数据 ──────────────────────────────────────────
 async function fetchFiles() {
@@ -369,12 +540,32 @@ async function fetchFiles() {
 
 onMounted(fetchFiles)
 
+// ── 动态来源筛选 chips ──────────────────────────────────
+const SOURCE_COLORS = [
+  { activeClass: 'bg-blue-100 text-blue-700',    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-blue-50' },
+  { activeClass: 'bg-purple-100 text-purple-700', inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-purple-50' },
+  { activeClass: 'bg-orange-100 text-orange-700', inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-orange-50' },
+  { activeClass: 'bg-teal-100 text-teal-700',    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-teal-50' },
+  { activeClass: 'bg-pink-100 text-pink-700',    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-pink-50' },
+  { activeClass: 'bg-cyan-100 text-cyan-700',    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-cyan-50' },
+  { activeClass: 'bg-indigo-100 text-indigo-700', inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-indigo-50' },
+]
+
+const dynamicSourceChips = computed(() => {
+  const sources = [...new Set(files.value.map(f => f.source))].sort()
+  return sources.map((s, i) => ({
+    label: s,
+    value: s,
+    ...SOURCE_COLORS[i % SOURCE_COLORS.length],
+  }))
+})
+
 // ── 筛选重置分页 ──────────────────────────────────────
 function setFormat(v: string)  { activeFormat.value = v;  currentPage.value = 1 }
 function setQuality(v: string) { activeQuality.value = activeQuality.value === v ? '' : v; currentPage.value = 1 }
 function setSource(v: string)  { activeSource.value  = activeSource.value  === v ? '' : v; currentPage.value = 1 }
 
-// ── 过滤 + 分页 ───────────────────────────────────────
+// ── 过滤 + 排序 + 分页 ─────────────────────────────────
 const filteredFiles = computed(() => files.value.filter(f => {
   const matchFormat  = activeFormat.value === '全部'
     || (activeFormat.value === 'AV' ? ['MP3', 'MP4'].includes(f.format) : f.format === activeFormat.value)
@@ -383,10 +574,15 @@ const filteredFiles = computed(() => files.value.filter(f => {
   return matchFormat && matchQuality && matchSource
 }))
 
-const totalPages    = computed(() => Math.max(1, Math.ceil(filteredFiles.value.length / PER_PAGE)))
+const sortedFiles = computed(() => {
+  if (!sortField.value) return filteredFiles.value
+  return [...filteredFiles.value].sort(compareFiles)
+})
+
+const totalPages    = computed(() => Math.max(1, Math.ceil(sortedFiles.value.length / PER_PAGE)))
 const paginatedFiles = computed(() => {
   const start = (currentPage.value - 1) * PER_PAGE
-  return filteredFiles.value.slice(start, start + PER_PAGE)
+  return sortedFiles.value.slice(start, start + PER_PAGE)
 })
 
 // ── 上传表单 ──────────────────────────────────────────
@@ -423,6 +619,8 @@ async function handleUpload() {
     await fetchFiles()
     showUploadModal.value = false
     uploadForm.value = { files: [], quality: '', validUntil: '', source: '' }
+    showNewSourceInput.value = false
+    newSourceName.value = ''
   } finally {
     uploading.value = false
   }
@@ -434,6 +632,8 @@ const editForm = ref({ quality: '高', validUntil: '', source: '官方开放' })
 function openEdit(file: KnowledgeFile) {
   editFile.value = file
   editForm.value = { quality: file.quality, validUntil: file.validUntil, source: file.source }
+  showEditSourceInput.value = false
+  editNewSourceName.value = ''
 }
 
 async function handleEditSave() {
@@ -464,10 +664,8 @@ async function openPreview(file: KnowledgeFile) {
     const res = await getKnowledgeFile(file.id)
     if (res.code === 200 && res.data.content) {
       if (res.data.content.startsWith('data:image/')) {
-        // 图片：直接作为 src 使用
         previewContent.value = res.data.content
       } else {
-        // 文本：渲染 Markdown
         previewContent.value = md.render(res.data.content)
       }
     }
@@ -502,12 +700,6 @@ const qualityChips = [
   { label: '低质量', value: '低', activeClass: 'bg-red-100 text-red-700',       inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-red-50' },
 ]
 
-const sourceChips = [
-  { label: '官方开放', value: '官方开放', activeClass: 'bg-blue-100 text-blue-700',    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-blue-50' },
-  { label: '自采集',   value: '自采集',   activeClass: 'bg-purple-100 text-purple-700', inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-purple-50' },
-  { label: '民间转载', value: '民间转载', activeClass: 'bg-orange-100 text-orange-700', inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-orange-50' },
-]
-
 function fileIcon(format: string) {
   const map: Record<string, any> = { PDF: FileText, MD: FileText, Word: FileText, JPG: FileImage, MP3: Music, MP4: Video }
   return map[format] ?? File
@@ -529,8 +721,17 @@ function qualityBadgeClass(quality: string) {
 }
 
 function sourceBadgeClass(source: string) {
-  const map: Record<string, string> = { '官方开放': 'bg-blue-100 text-blue-700', '自采集': 'bg-purple-100 text-purple-700', '民间转载': 'bg-orange-100 text-orange-700' }
-  return map[source] ?? 'bg-slate-100 text-slate-600'
+  // 预设来源有固定颜色
+  const presetMap: Record<string, string> = {
+    '官方开放': 'bg-blue-100 text-blue-700',
+    '自采集': 'bg-purple-100 text-purple-700',
+    '民间转载': 'bg-orange-100 text-orange-700',
+  }
+  if (presetMap[source]) return presetMap[source]
+  // 自定义来源按索引分配颜色
+  const idx = customSources.value.indexOf(source)
+  const colors = ['bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700', 'bg-cyan-100 text-cyan-700', 'bg-indigo-100 text-indigo-700']
+  return colors[idx % colors.length] || 'bg-slate-100 text-slate-600'
 }
 </script>
 

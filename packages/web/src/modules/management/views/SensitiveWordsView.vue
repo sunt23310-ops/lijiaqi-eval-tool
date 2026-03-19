@@ -178,66 +178,70 @@ interface SensitiveWord {
 }
 
 const words = ref<SensitiveWord[]>([
-  // ── 违禁词（高风险）──
-  { id: 1,  name: '某奢侈品牌',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-01-15 14:30' },
-  { id: 2,  name: '刷单',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-10 09:12' },
-  { id: 5,  name: '假冒正品',       category: '违禁词',  risk: '高风险', status: '未上线', onlineTime: '--' },
-  { id: 6,  name: '高仿',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:05' },
-  { id: 7,  name: '山寨',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:06' },
-  { id: 8,  name: '虚假宣传',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:30' },
-  { id: 9,  name: '三无产品',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:31' },
-  { id: 10, name: '走私',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:00' },
-  { id: 11, name: '偷税漏税',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:01' },
-  { id: 12, name: '传销',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:20' },
-  { id: 13, name: '赌博',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:21' },
-  { id: 14, name: '色情',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:22' },
-  { id: 15, name: '暴力',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:00' },
-  { id: 16, name: '毒品',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:01' },
-  { id: 17, name: '枪支弹药',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:02' },
-  { id: 18, name: '代购假货',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:15' },
-  { id: 19, name: '洗钱',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:16' },
-  { id: 20, name: '诈骗',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:40' },
-  { id: 21, name: '非法集资',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:41' },
-  { id: 22, name: '侵权盗版',       category: '违禁词',  risk: '高风险', status: '未上线', onlineTime: '--' },
+  // ── 涉黄涉政（高风险 → 直接拦截）──
+  { id: 1,  name: '色情',           category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:22' },
+  { id: 2,  name: '毒品',           category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:01' },
+  { id: 3,  name: '枪支弹药',       category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:02' },
+  { id: 4,  name: '政治立场',       category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-01-31 09:01' },
+  { id: 5,  name: '宗教信仰',       category: '涉黄涉政', risk: '中风险', status: '已上线', onlineTime: '2025-02-01 08:45' },
+  { id: 6,  name: '种族歧视',       category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:46' },
+  { id: 7,  name: '性别歧视',       category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:47' },
+  { id: 8,  name: '地域歧视',       category: '涉黄涉政', risk: '中风险', status: '已上线', onlineTime: '2025-02-02 14:20' },
+  { id: 9,  name: '造谣传谣',       category: '涉黄涉政', risk: '高风险', status: '已上线', onlineTime: '2025-02-07 08:30' },
 
-  // ── 敏感话题（中风险）──
-  { id: 3,  name: '私下购买',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-08 16:45' },
-  { id: 23, name: '退款纠纷',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-29 10:00' },
-  { id: 24, name: '投诉举报',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-29 10:01' },
-  { id: 25, name: '维权',           category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-30 15:30' },
-  { id: 26, name: '打假',           category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-30 15:31' },
-  { id: 27, name: '税务问题',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-31 09:00' },
-  { id: 28, name: '政治立场',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-01-31 09:01' },
-  { id: 29, name: '宗教信仰',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-01 08:45' },
-  { id: 30, name: '种族歧视',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:46' },
-  { id: 31, name: '性别歧视',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:47' },
-  { id: 32, name: '地域歧视',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-02 14:20' },
-  { id: 33, name: '人身攻击',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-02 14:21' },
-  { id: 34, name: '隐私泄露',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-03 10:10' },
-  { id: 35, name: '个人信息',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-03 10:11' },
-  { id: 36, name: '未成年人',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:00' },
-  { id: 37, name: '自杀自残',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:01' },
-  { id: 38, name: '医疗建议',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:30' },
-  { id: 39, name: '法律咨询',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:31' },
-  { id: 40, name: '金融投资建议',   category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-06 16:00' },
-  { id: 41, name: '明星八卦',       category: '敏感话题', risk: '低风险', status: '已上线', onlineTime: '2025-02-06 16:01' },
-  { id: 42, name: '负面舆情',       category: '敏感话题', risk: '中风险', status: '未上线', onlineTime: '--' },
-  { id: 43, name: '造谣传谣',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-07 08:30' },
+  // ── 暴力犯罪（高风险 → 直接拦截）──
+  { id: 10, name: '暴力',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:00' },
+  { id: 11, name: '赌博',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:21' },
+  { id: 12, name: '传销',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:20' },
+  { id: 13, name: '诈骗',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:40' },
+  { id: 14, name: '非法集资',       category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:41' },
+  { id: 15, name: '洗钱',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:16' },
+  { id: 16, name: '走私',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:00' },
+  { id: 17, name: '偷税漏税',       category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:01' },
+  { id: 18, name: '刷单',           category: '暴力犯罪', risk: '高风险', status: '已上线', onlineTime: '2025-01-10 09:12' },
+  { id: 19, name: '侵权盗版',       category: '暴力犯罪', risk: '高风险', status: '未上线', onlineTime: '--' },
 
-  // ── 竞品词（低/中风险）──
-  { id: 4,  name: '价格战营销',     category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-01-20 11:00' },
-  { id: 44, name: '某头部主播',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-08 10:00' },
-  { id: 45, name: '竞品直播间',     category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-08 10:01' },
-  { id: 46, name: '对标品牌',       category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-09 14:15' },
-  { id: 47, name: '比价',           category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-09 14:16' },
-  { id: 48, name: '某平台更便宜',   category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-10 09:45' },
-  { id: 49, name: '全网最低价',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-10 09:46' },
-  { id: 50, name: '破价',           category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:20' },
-  { id: 51, name: '恶意比较',       category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:21' },
-  { id: 52, name: '贬低同行',       category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-12 08:50' },
-  { id: 53, name: '抄袭模仿',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
-  { id: 54, name: '挖角主播',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
-  { id: 55, name: '跳槽竞品',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
+  // ── 极端情绪（高风险 → 拦截+转人工）──
+  { id: 20, name: '自杀自残',       category: '极端情绪', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:01' },
+  { id: 21, name: '人身攻击',       category: '极端情绪', risk: '高风险', status: '已上线', onlineTime: '2025-02-02 14:21' },
+  { id: 22, name: '威胁恐吓',       category: '极端情绪', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:02' },
+  { id: 23, name: '煽动仇恨',       category: '极端情绪', risk: '高风险', status: '未上线', onlineTime: '--' },
+
+  // ── 隐私合规（中风险 → 降级回复+提示）──
+  { id: 24, name: '隐私泄露',       category: '隐私合规', risk: '高风险', status: '已上线', onlineTime: '2025-02-03 10:10' },
+  { id: 25, name: '个人信息',       category: '隐私合规', risk: '中风险', status: '已上线', onlineTime: '2025-02-03 10:11' },
+  { id: 26, name: '未成年人',       category: '隐私合规', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:00' },
+  { id: 27, name: '身份证号',       category: '隐私合规', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 09:00' },
+  { id: 28, name: '手机号码',       category: '隐私合规', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 09:01' },
+  { id: 29, name: '银行卡号',       category: '隐私合规', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 09:02' },
+  { id: 30, name: '家庭住址',       category: '隐私合规', risk: '中风险', status: '未上线', onlineTime: '--' },
+
+  // ── 专业领域（中风险 → 降级回复+免责）──
+  { id: 31, name: '医疗建议',       category: '专业领域', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:30' },
+  { id: 32, name: '法律咨询',       category: '专业领域', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:31' },
+  { id: 33, name: '金融投资建议',   category: '专业领域', risk: '中风险', status: '已上线', onlineTime: '2025-02-06 16:00' },
+  { id: 34, name: '处方药推荐',     category: '专业领域', risk: '高风险', status: '已上线', onlineTime: '2025-02-06 16:01' },
+  { id: 35, name: '税务问题',       category: '专业领域', risk: '中风险', status: '已上线', onlineTime: '2025-01-31 09:00' },
+  { id: 36, name: '保险理赔',       category: '专业领域', risk: '中风险', status: '未上线', onlineTime: '--' },
+
+  // ── 商业竞品（低风险 → 警告+话术引导）──
+  { id: 37, name: '某奢侈品牌',     category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-01-15 14:30' },
+  { id: 38, name: '某头部主播',     category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-02-08 10:00' },
+  { id: 39, name: '竞品直播间',     category: '商业竞品', risk: '低风险', status: '已上线', onlineTime: '2025-02-08 10:01' },
+  { id: 40, name: '比价',           category: '商业竞品', risk: '低风险', status: '已上线', onlineTime: '2025-02-09 14:16' },
+  { id: 41, name: '全网最低价',     category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-02-10 09:46' },
+  { id: 42, name: '虚假宣传',       category: '商业竞品', risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:30' },
+  { id: 43, name: '三无产品',       category: '商业竞品', risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:31' },
+  { id: 44, name: '假冒正品',       category: '商业竞品', risk: '高风险', status: '未上线', onlineTime: '--' },
+  { id: 45, name: '高仿',           category: '商业竞品', risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:05' },
+  { id: 46, name: '山寨',           category: '商业竞品', risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:06' },
+  { id: 47, name: '贬低同行',       category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-02-12 08:50' },
+  { id: 48, name: '恶意比较',       category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:21' },
+  { id: 49, name: '破价',           category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:20' },
+  { id: 50, name: '价格战营销',     category: '商业竞品', risk: '低风险', status: '已上线', onlineTime: '2025-01-20 11:00' },
+  { id: 51, name: '代购假货',       category: '商业竞品', risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:15' },
+  { id: 52, name: '私下购买',       category: '商业竞品', risk: '中风险', status: '已上线', onlineTime: '2025-01-08 16:45' },
+  { id: 53, name: '抄袭模仿',       category: '商业竞品', risk: '低风险', status: '未上线', onlineTime: '--' },
 ])
 
 // ── 统计 ──────────────────────────────────────────────
@@ -245,15 +249,18 @@ const stats = computed(() => [
   { label: '总词数',   value: words.value.length,                                      color: 'text-[var(--md-on-surface)]' },
   { label: '已上线',   value: words.value.filter(w => w.status === '已上线').length,   color: 'text-green-600' },
   { label: '未上线',   value: words.value.filter(w => w.status === '未上线').length,   color: 'text-[#94A3B8]' },
-  { label: '今日新增', value: 1,                                                        color: 'text-[var(--md-primary)]' },
+  { label: '高风险词', value: words.value.filter(w => w.risk === '高风险').length,     color: 'text-red-600' },
 ])
 
 // ── 筛选 Tabs ─────────────────────────────────────────
 const categoryTabs = [
-  { label: '全部',   value: '全部' },
-  { label: '违禁词', value: '违禁词' },
-  { label: '竞品词', value: '竞品词' },
-  { label: '敏感话题', value: '敏感话题' },
+  { label: '全部',     value: '全部' },
+  { label: '涉黄涉政', value: '涉黄涉政' },
+  { label: '暴力犯罪', value: '暴力犯罪' },
+  { label: '极端情绪', value: '极端情绪' },
+  { label: '隐私合规', value: '隐私合规' },
+  { label: '专业领域', value: '专业领域' },
+  { label: '商业竞品', value: '商业竞品' },
 ]
 
 const statusChips = [
@@ -284,10 +291,12 @@ const filteredWords = computed(() => {
 // ── 徽章样式 ──────────────────────────────────────────
 function categoryBadgeClass(category: string) {
   const map: Record<string, string> = {
-    '违禁词':  'bg-red-100 text-red-700',
-    '竞品词':  'bg-blue-100 text-blue-700',
-    '敏感话题': 'bg-orange-100 text-orange-700',
-    '其他':    'bg-slate-100 text-slate-600',
+    '涉黄涉政': 'bg-red-100 text-red-700',
+    '暴力犯罪': 'bg-rose-100 text-rose-700',
+    '极端情绪': 'bg-fuchsia-100 text-fuchsia-700',
+    '隐私合规': 'bg-amber-100 text-amber-700',
+    '专业领域': 'bg-sky-100 text-sky-700',
+    '商业竞品': 'bg-blue-100 text-blue-700',
   }
   return map[category] ?? 'bg-slate-100 text-slate-600'
 }
@@ -325,15 +334,19 @@ function handleDelete(id: number) {
   words.value = words.value.filter(w => w.id !== id)
 }
 
+// 批量添加：按换行拆分，每个词单独一条
 function handleAddWord(data: { name: string; category: string; risk: string; remark: string }) {
-  words.value.push({
-    id: Date.now(),
-    name: data.name,
-    category: data.category,
-    risk: data.risk,
-    status: '未上线',
-    onlineTime: '--',
-  })
+  const lines = data.name.split(/\n/).map(l => l.trim()).filter(Boolean)
+  for (const line of lines) {
+    words.value.push({
+      id: Date.now() + Math.random(),
+      name: line,
+      category: data.category,
+      risk: data.risk,
+      status: '未上线',
+      onlineTime: '--',
+    })
+  }
   showAddModal.value = false
 }
 </script>
