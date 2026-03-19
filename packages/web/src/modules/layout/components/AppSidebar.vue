@@ -4,7 +4,7 @@
     <div class="p-4 border-b border-[var(--md-outline-variant)]">
       <h1 class="text-lg font-semibold text-[var(--md-on-surface)] mb-3">评测工具</h1>
       <button
-        @click="showNewSessionModal = true"
+        @click="handleCreate"
         class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[var(--md-primary)] text-[var(--md-on-primary)] text-sm font-medium hover:opacity-90 transition"
       >
         <Plus :size="18" />
@@ -92,69 +92,10 @@
     </div>
   </aside>
 
-  <!-- 新建会话弹窗 -->
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="showNewSessionModal" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/30" @click="showNewSessionModal = false" />
-        <div class="relative w-[440px] bg-white rounded-2xl shadow-xl p-6">
-          <h3 class="text-base font-semibold text-[var(--md-on-surface)] mb-4">新建会话</h3>
-
-          <!-- 会话名称 -->
-          <div class="mb-4">
-            <label class="text-sm font-medium text-[var(--md-on-surface)] mb-1.5 block">会话名称</label>
-            <input
-              v-model="newSessionName"
-              type="text"
-              placeholder="新会话"
-              class="w-full px-3 py-2 rounded-lg border border-[var(--md-outline-variant)] text-sm outline-none focus:border-[var(--md-primary)] transition"
-            />
-          </div>
-
-          <!-- 场景选择 -->
-          <div class="mb-5">
-            <label class="text-sm font-medium text-[var(--md-on-surface)] mb-2 block">评测场景</label>
-            <div class="grid grid-cols-5 gap-2">
-              <button
-                v-for="scene in sceneOptions"
-                :key="scene.type"
-                @click="selectedScene = scene.type"
-                class="flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all"
-                :class="selectedScene === scene.type
-                  ? 'border-[var(--md-primary)] bg-[var(--md-primary-container)]'
-                  : 'border-[var(--md-outline-variant)] hover:border-[var(--md-outline)]'"
-              >
-                <span class="text-lg">{{ scene.emoji }}</span>
-                <span class="text-[10px] font-medium" :class="selectedScene === scene.type ? 'text-[var(--md-primary)]' : 'text-[var(--md-on-surface-variant)]'">
-                  {{ scene.label }}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 按钮 -->
-          <div class="flex justify-end gap-2">
-            <button
-              @click="showNewSessionModal = false"
-              class="px-4 py-2 rounded-lg text-sm text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container-high)] transition"
-            >
-              取消
-            </button>
-            <button
-              @click="handleCreate"
-              class="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--md-primary)] text-[var(--md-on-primary)] hover:opacity-90 transition"
-            >
-              创建
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Plus, MessageSquare, Trash2, LogOut, ShieldAlert, Database, ScanSearch } from 'lucide-vue-next'
 import type { SceneType } from '@eval/shared'
@@ -169,24 +110,6 @@ const evalStore = useEvaluationStore()
 const router = useRouter()
 const route = useRoute()
 
-const showNewSessionModal = ref(false)
-const newSessionName = ref('')
-const selectedScene = ref<SceneType>('hybrid')
-
-const SCENE_EMOJIS: Record<SceneType, string> = {
-  consult: '🧴',
-  promo: '🎉',
-  service: '🔧',
-  chat: '💬',
-  hybrid: '🔄',
-}
-
-const sceneOptions = Object.values(SCENE_CONFIGS).map(s => ({
-  type: s.type,
-  label: s.label,
-  emoji: SCENE_EMOJIS[s.type] || '📋',
-}))
-
 function getSceneLabel(sceneType?: string): string {
   if (!sceneType) return '混合'
   return SCENE_CONFIGS[sceneType as SceneType]?.label || '混合'
@@ -197,12 +120,8 @@ onMounted(() => {
 })
 
 async function handleCreate() {
-  const name = newSessionName.value.trim() || '新会话'
-  await chatStore.createSession(name, selectedScene.value)
+  await chatStore.createSession('新会话')
   evalStore.reset()
-  showNewSessionModal.value = false
-  newSessionName.value = ''
-  selectedScene.value = 'hybrid'
   if (route.name !== 'Workspace') router.push('/')
 }
 
@@ -224,7 +143,3 @@ function handleLogout() {
 }
 </script>
 
-<style scoped>
-.modal-enter-active, .modal-leave-active { transition: opacity 0.15s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
-</style>
