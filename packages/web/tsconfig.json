@@ -13,10 +13,12 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@eval/shared": ["../shared/src/index.ts"],
+      "@eval/shared/*": ["../shared/src/*"]
     },
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "src/env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/env.d.ts", "../shared/src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -25,6 +25,7 @@ model Session {
   id        Int       @id @default(autoincrement())
   name      String
   status    String    @default("active") // active | archived
+  sceneType String    @default("hybrid") @map("scene_type") // consult | promo | service | chat | hybrid
   userId    Int       @map("user_id")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -59,10 +60,16 @@ model Evaluation {
   sessionId    Int      @map("session_id")
   userId       Int      @map("user_id")
   status       String   @default("pending") // pending | running | completed | failed
+  sceneType    String?  @map("scene_type")  // consult | promo | service | chat | hybrid
 
-  overallScore  Float?   @map("overall_score")
+  overallScore  Float?   @map("overall_score") // 0-100 scale
 
-  // 5 个维度各存 score + reasoning + details
+  // New: flexible dimension scores as JSON
+  dimensionScores   Json?   @map("dimension_scores")   // DimensionScore[]
+  checklistResults  Json?   @map("checklist_results")  // ChecklistItem[] (chat scene)
+  ageStratification Json?   @map("age_stratification") // AgeStratification (chat scene)
+
+  // Legacy 5-dimension columns (kept during migration)
   intentScore      Float?  @map("intent_score")
   intentReasoning  String? @map("intent_reasoning")
   intentDetails    Json?   @map("intent_details")
@@ -95,20 +102,82 @@ model Evaluation {
   @@map("evaluations")
 }
 
-// ─── AI 模型数据库文件表 ──────────────────────────────
+// ─── 商品知识库文件表 (原 AI 模型数据库) ──────────────
 model ModelFile {
   id         Int      @id @default(autoincrement())
   name       String
   format     String   // MD, PDF, Word, JPG, MP3, MP4
   quality    String   // 高, 中, 低
   validUntil String   @map("valid_until")
-  source     String   // 官方开放, 自采集, 民间转载
+  source     String   // 小课堂, 双十一小课堂, etc.
   sizeBytes  Int?     @map("size_bytes")
+  filePath   String?  @map("file_path")   // 存储路径
+  mimeType   String?  @map("mime_type")
   content    String?  // 文件文本内容（MD/txt 等可读格式）
-  sortOrder  Int      @default(0) @map("sort_order") // (num-1)*2+1=MD, (num-1)*2+2=JPG
+  sortOrder  Int      @default(0) @map("sort_order")
+  replacedBy Int?     @map("replaced_by") // 软删除: 被哪个新文件替换
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
   @@map("model_files")
+}
+
+// ─── QA 数据库 ──────────────────────────────────────
+model QAFolder {
+  id        Int      @id @default(autoincrement())
+  name      String
+  sceneType String   @default("consult") @map("scene_type") // consult | promo | service | chat
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  files QAFile[]
+
+  @@map("qa_folders")
+}
+
+model QAFile {
+  id         Int      @id @default(autoincrement())
+  folderId   Int      @map("folder_id")
+  name       String
+  format     String   // txt, csv, json, md
+  sizeBytes  Int      @default(0) @map("size_bytes")
+  qaCount    Int      @default(0) @map("qa_count")
+  filePath   String   @map("file_path")
+  metadata   Json?    // { sourceDoc, category, userProfile, primaryNeed, rounds }
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  folder  QAFolder  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  entries QAEntry[]
+
+  @@map("qa_files")
+}
+
+model QAEntry {
+  id       Int     @id @default(autoincrement())
+  fileId   Int     @map("file_id")
+  round    Int     @default(1) // 对话轮次
+  question String
+  answer   String  @default("") // 可为空，模型生成
+  category String?
+  tags     Json?
+
+  file QAFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("qa_entries")
+}
+
+// ─── 上传任务表 ──────────────────────────────────────
+model UploadJob {
+  id             String    @id @default(uuid())
+  channel        String    // qa-database | knowledge-base
+  status         String    @default("pending") // pending | processing | completed | failed
+  totalFiles     Int       @default(0) @map("total_files")
+  processedFiles Int       @default(0) @map("processed_files")
+  failedFiles    Json?     @map("failed_files")
+  userId         Int       @map("user_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+
+  @@map("upload_jobs")
 }
 
 // ─── 系统配置表 ──────────────────────────────────────

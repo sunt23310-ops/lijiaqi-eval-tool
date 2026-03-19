@@ -1,0 +1,339 @@
+<template>
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- 页面标题栏 -->
+    <div class="px-6 py-5 border-b border-[var(--md-outline-variant)] bg-white flex items-center gap-3 flex-shrink-0">
+      <ShieldAlert :size="20" class="text-[var(--md-primary)]" />
+      <h2 class="text-base font-semibold text-[var(--md-on-surface)]">敏感词管理</h2>
+      <span class="text-sm text-[var(--md-on-surface-variant)]">李佳琦大模型</span>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-6 space-y-5">
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-4 gap-4">
+        <div
+          v-for="stat in stats"
+          :key="stat.label"
+          class="bg-white rounded-2xl p-4 border border-[var(--md-outline-variant)]"
+        >
+          <p class="text-sm text-[var(--md-on-surface-variant)] mb-1">{{ stat.label }}</p>
+          <p class="text-2xl font-bold" :class="stat.color">{{ stat.value }}</p>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="bg-white rounded-2xl border border-[var(--md-outline-variant)] overflow-hidden">
+        <!-- 第一行：搜索 + 添加 -->
+        <div class="px-6 py-3.5 flex items-center justify-between border-b border-[var(--md-outline-variant)]">
+          <div class="flex items-center gap-2 w-[300px] h-9 px-3 rounded-lg border border-[var(--md-outline-variant)] bg-[#F8FAFC]">
+            <Search :size="16" class="text-[#94A3B8] flex-shrink-0" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索敏感词..."
+              class="flex-1 bg-transparent text-sm text-[var(--md-on-surface)] placeholder:text-[#94A3B8] outline-none"
+            />
+          </div>
+          <button
+            @click="showAddModal = true"
+            class="flex items-center gap-2 h-9 px-4 rounded-lg bg-[var(--md-primary)] text-[var(--md-on-primary)] text-sm font-medium hover:opacity-90 transition"
+          >
+            <Plus :size="16" />
+            添加敏感词
+          </button>
+        </div>
+
+        <!-- 第二行：筛选 -->
+        <div class="px-6 py-2.5 flex items-center justify-between">
+          <!-- 分类分段控件 -->
+          <div class="flex items-center gap-1 bg-[#F1F5F9] rounded-lg p-[3px]">
+            <button
+              v-for="tab in categoryTabs"
+              :key="tab.value"
+              @click="activeCategory = tab.value"
+              class="px-3.5 py-1.5 rounded-md text-xs font-medium transition-all"
+              :class="activeCategory === tab.value
+                ? 'bg-white text-[var(--md-primary)] shadow-sm'
+                : 'text-[#64748B] hover:text-[var(--md-on-surface)]'"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <!-- 状态筛选 chip -->
+          <div class="flex items-center gap-2">
+            <button
+              v-for="chip in statusChips"
+              :key="chip.value"
+              @click="activeStatus = activeStatus === chip.value ? '' : chip.value"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              :class="activeStatus === chip.value ? chip.activeClass : chip.inactiveClass"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="chip.dotClass"></span>
+              {{ chip.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 敏感词列表 -->
+      <div class="space-y-3">
+        <div
+          v-for="word in filteredWords"
+          :key="word.id"
+          class="bg-white rounded-2xl border border-[var(--md-outline-variant)] px-6 py-4 flex items-center justify-between hover:border-[var(--md-outline)] transition-colors"
+        >
+          <!-- 左侧信息 -->
+          <div class="flex flex-col gap-2 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-semibold text-[var(--md-on-surface)]">{{ word.name }}</span>
+              <span
+                class="px-2 py-0.5 rounded-md text-xs font-medium"
+                :class="categoryBadgeClass(word.category)"
+              >{{ word.category }}</span>
+              <span
+                class="px-2 py-0.5 rounded-md text-xs font-medium"
+                :class="riskBadgeClass(word.risk)"
+              >{{ word.risk }}</span>
+              <span class="flex items-center gap-1 text-xs" :class="word.status === '已上线' ? 'text-green-600' : 'text-[#94A3B8]'">
+                <span class="w-1.5 h-1.5 rounded-full" :class="word.status === '已上线' ? 'bg-green-500' : 'bg-[#94A3B8]'"></span>
+                {{ word.status }}
+              </span>
+            </div>
+            <p class="text-xs text-[var(--md-on-surface-variant)]">
+              上线时间: {{ word.onlineTime }}
+            </p>
+          </div>
+
+          <!-- 右侧操作 -->
+          <div class="flex items-center gap-2 flex-shrink-0 ml-6">
+            <!-- 已上线：仅显示下线按钮 -->
+            <template v-if="word.status === '已上线'">
+              <button
+                @click="handleOffline(word.id)"
+                class="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-normal transition hover:opacity-80"
+                style="background-color: #FEF3C7; color: #92400E;"
+              >
+                <ToggleLeft :size="14" />
+                下线
+              </button>
+            </template>
+
+            <!-- 未上线：显示删除 + 上线按钮 -->
+            <template v-else>
+              <button
+                @click="handleDelete(word.id)"
+                class="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-normal transition hover:opacity-80"
+                style="background-color: #FEE2E2; color: #991B1B;"
+              >
+                <Trash2 :size="14" />
+                删除
+              </button>
+              <button
+                @click="handleOnline(word.id)"
+                class="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-normal transition hover:opacity-80"
+                style="background-color: #D1FAE5; color: #065F46;"
+              >
+                <ToggleRight :size="14" />
+                上线
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div v-if="filteredWords.length === 0" class="text-center py-16 text-sm text-[var(--md-on-surface-variant)]">
+          暂无匹配的敏感词
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 添加弹窗 -->
+  <AddSensitiveWordModal
+    v-model="showAddModal"
+    @confirm="handleAddWord"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import {
+  ShieldAlert, Search, Plus, ToggleLeft, ToggleRight, Trash2,
+} from 'lucide-vue-next'
+import AddSensitiveWordModal from '@/modules/management/components/sensitive-words/AddSensitiveWordModal.vue'
+
+// ── 状态 ──────────────────────────────────────────────
+const showAddModal = ref(false)
+const searchQuery = ref('')
+const activeCategory = ref('全部')
+const activeStatus = ref('')
+
+// ── Mock 数据 ─────────────────────────────────────────
+interface SensitiveWord {
+  id: number
+  name: string
+  category: string
+  risk: string
+  status: '已上线' | '未上线'
+  onlineTime: string
+}
+
+const words = ref<SensitiveWord[]>([
+  // ── 违禁词（高风险）──
+  { id: 1,  name: '某奢侈品牌',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-01-15 14:30' },
+  { id: 2,  name: '刷单',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-10 09:12' },
+  { id: 5,  name: '假冒正品',       category: '违禁词',  risk: '高风险', status: '未上线', onlineTime: '--' },
+  { id: 6,  name: '高仿',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:05' },
+  { id: 7,  name: '山寨',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-22 10:06' },
+  { id: 8,  name: '虚假宣传',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:30' },
+  { id: 9,  name: '三无产品',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-23 09:31' },
+  { id: 10, name: '走私',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:00' },
+  { id: 11, name: '偷税漏税',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-24 14:01' },
+  { id: 12, name: '传销',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:20' },
+  { id: 13, name: '赌博',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:21' },
+  { id: 14, name: '色情',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-25 08:22' },
+  { id: 15, name: '暴力',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:00' },
+  { id: 16, name: '毒品',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:01' },
+  { id: 17, name: '枪支弹药',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-26 11:02' },
+  { id: 18, name: '代购假货',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:15' },
+  { id: 19, name: '洗钱',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-27 09:16' },
+  { id: 20, name: '诈骗',           category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:40' },
+  { id: 21, name: '非法集资',       category: '违禁词',  risk: '高风险', status: '已上线', onlineTime: '2025-01-28 13:41' },
+  { id: 22, name: '侵权盗版',       category: '违禁词',  risk: '高风险', status: '未上线', onlineTime: '--' },
+
+  // ── 敏感话题（中风险）──
+  { id: 3,  name: '私下购买',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-08 16:45' },
+  { id: 23, name: '退款纠纷',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-29 10:00' },
+  { id: 24, name: '投诉举报',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-29 10:01' },
+  { id: 25, name: '维权',           category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-30 15:30' },
+  { id: 26, name: '打假',           category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-30 15:31' },
+  { id: 27, name: '税务问题',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-01-31 09:00' },
+  { id: 28, name: '政治立场',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-01-31 09:01' },
+  { id: 29, name: '宗教信仰',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-01 08:45' },
+  { id: 30, name: '种族歧视',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:46' },
+  { id: 31, name: '性别歧视',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-01 08:47' },
+  { id: 32, name: '地域歧视',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-02 14:20' },
+  { id: 33, name: '人身攻击',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-02 14:21' },
+  { id: 34, name: '隐私泄露',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-03 10:10' },
+  { id: 35, name: '个人信息',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-03 10:11' },
+  { id: 36, name: '未成年人',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:00' },
+  { id: 37, name: '自杀自残',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-04 09:01' },
+  { id: 38, name: '医疗建议',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:30' },
+  { id: 39, name: '法律咨询',       category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-05 11:31' },
+  { id: 40, name: '金融投资建议',   category: '敏感话题', risk: '中风险', status: '已上线', onlineTime: '2025-02-06 16:00' },
+  { id: 41, name: '明星八卦',       category: '敏感话题', risk: '低风险', status: '已上线', onlineTime: '2025-02-06 16:01' },
+  { id: 42, name: '负面舆情',       category: '敏感话题', risk: '中风险', status: '未上线', onlineTime: '--' },
+  { id: 43, name: '造谣传谣',       category: '敏感话题', risk: '高风险', status: '已上线', onlineTime: '2025-02-07 08:30' },
+
+  // ── 竞品词（低/中风险）──
+  { id: 4,  name: '价格战营销',     category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-01-20 11:00' },
+  { id: 44, name: '某头部主播',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-08 10:00' },
+  { id: 45, name: '竞品直播间',     category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-08 10:01' },
+  { id: 46, name: '对标品牌',       category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-09 14:15' },
+  { id: 47, name: '比价',           category: '竞品词',  risk: '低风险', status: '已上线', onlineTime: '2025-02-09 14:16' },
+  { id: 48, name: '某平台更便宜',   category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-10 09:45' },
+  { id: 49, name: '全网最低价',     category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-10 09:46' },
+  { id: 50, name: '破价',           category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:20' },
+  { id: 51, name: '恶意比较',       category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-11 11:21' },
+  { id: 52, name: '贬低同行',       category: '竞品词',  risk: '中风险', status: '已上线', onlineTime: '2025-02-12 08:50' },
+  { id: 53, name: '抄袭模仿',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
+  { id: 54, name: '挖角主播',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
+  { id: 55, name: '跳槽竞品',       category: '竞品词',  risk: '低风险', status: '未上线', onlineTime: '--' },
+])
+
+// ── 统计 ──────────────────────────────────────────────
+const stats = computed(() => [
+  { label: '总词数',   value: words.value.length,                                      color: 'text-[var(--md-on-surface)]' },
+  { label: '已上线',   value: words.value.filter(w => w.status === '已上线').length,   color: 'text-green-600' },
+  { label: '未上线',   value: words.value.filter(w => w.status === '未上线').length,   color: 'text-[#94A3B8]' },
+  { label: '今日新增', value: 1,                                                        color: 'text-[var(--md-primary)]' },
+])
+
+// ── 筛选 Tabs ─────────────────────────────────────────
+const categoryTabs = [
+  { label: '全部',   value: '全部' },
+  { label: '违禁词', value: '违禁词' },
+  { label: '竞品词', value: '竞品词' },
+  { label: '敏感话题', value: '敏感话题' },
+]
+
+const statusChips = [
+  {
+    label: '已上线', value: '已上线',
+    dotClass: 'bg-green-500',
+    activeClass:   'bg-green-100 text-green-700',
+    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-green-50 hover:text-green-600',
+  },
+  {
+    label: '未上线', value: '未上线',
+    dotClass: 'bg-[#94A3B8]',
+    activeClass:   'bg-slate-200 text-slate-600',
+    inactiveClass: 'bg-[#F1F5F9] text-[#64748B] hover:bg-slate-200',
+  },
+]
+
+// ── 过滤后列表 ────────────────────────────────────────
+const filteredWords = computed(() => {
+  return words.value.filter(w => {
+    const matchSearch   = !searchQuery.value || w.name.includes(searchQuery.value)
+    const matchCategory = activeCategory.value === '全部' || w.category === activeCategory.value
+    const matchStatus   = !activeStatus.value || w.status === activeStatus.value
+    return matchSearch && matchCategory && matchStatus
+  })
+})
+
+// ── 徽章样式 ──────────────────────────────────────────
+function categoryBadgeClass(category: string) {
+  const map: Record<string, string> = {
+    '违禁词':  'bg-red-100 text-red-700',
+    '竞品词':  'bg-blue-100 text-blue-700',
+    '敏感话题': 'bg-orange-100 text-orange-700',
+    '其他':    'bg-slate-100 text-slate-600',
+  }
+  return map[category] ?? 'bg-slate-100 text-slate-600'
+}
+
+function riskBadgeClass(risk: string) {
+  const map: Record<string, string> = {
+    '高风险': 'bg-red-100 text-red-700',
+    '中风险': 'bg-amber-100 text-amber-700',
+    '低风险': 'bg-green-100 text-green-700',
+  }
+  return map[risk] ?? 'bg-slate-100 text-slate-600'
+}
+
+// ── 操作 ──────────────────────────────────────────────
+function handleOffline(id: number) {
+  const word = words.value.find(w => w.id === id)
+  if (word) {
+    word.status = '未上线'
+    word.onlineTime = '--'
+  }
+}
+
+function handleOnline(id: number) {
+  const word = words.value.find(w => w.id === id)
+  if (word) {
+    word.status = '已上线'
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    word.onlineTime = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+}
+
+function handleDelete(id: number) {
+  if (!confirm('确认删除该敏感词？')) return
+  words.value = words.value.filter(w => w.id !== id)
+}
+
+function handleAddWord(data: { name: string; category: string; risk: string; remark: string }) {
+  words.value.push({
+    id: Date.now(),
+    name: data.name,
+    category: data.category,
+    risk: data.risk,
+    status: '未上线',
+    onlineTime: '--',
+  })
+  showAddModal.value = false
+}
+</script>

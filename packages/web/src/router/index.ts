@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { evaluationRoutes } from '@/modules/evaluation/routes'
+import { managementRoutes } from '@/modules/management/routes'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -11,24 +13,13 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/components/layout/AppLayout.vue'),
+      component: () => import('@/modules/layout/components/AppLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        {
-          path: '',
-          name: 'Workspace',
-          component: () => import('@/views/EvalWorkspace.vue'),
-        },
-        {
-          path: 'sensitive-words',
-          name: 'SensitiveWords',
-          component: () => import('@/views/SensitiveWordsView.vue'),
-        },
-        {
-          path: 'model-database',
-          name: 'ModelDatabase',
-          component: () => import('@/views/ModelDatabaseView.vue'),
-        },
+        // Zone B: AI 评测 (默认)
+        ...evaluationRoutes,
+        // Zone C: 系统管理
+        ...managementRoutes,
       ],
     },
   ],
