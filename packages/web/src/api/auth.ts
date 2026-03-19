@@ -13,7 +13,7 @@ export function getValidCode() {
   return axios
     .get<{
       code: number
-      data: { base64Image: string; hash: string }
+      data: { base64Image: string; hash: string; timestamp: number }
     }>(`${baseURL}/eval/public/v1/auth/validCode`)
     .then((res) => res.data)
 }
@@ -27,6 +27,7 @@ export function login(params: {
   password: string
   validCode: string
   hash: string
+  timestamp: number
 }) {
   return axios
     .post<{

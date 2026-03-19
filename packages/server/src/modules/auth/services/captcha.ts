@@ -1,29 +1,23 @@
 /**
- * 图片验证码生成
+ * 图片验证码生成（无状态版本）
  *
- * 使用 svg-captcha 生成验证码图片（base64）+ hash 校验值
- * hash = sha256(answer.toLowerCase())，验证时比对 hash
+ * 使用 HMAC 签名方式，无需服务端内存存储，兼容 Serverless 环境。
+ * hash = hmac(answer.toLowerCase() + '|' + timestamp, SECRET)
+ * 客户端提交 {hash, timestamp, validCode}，服务端重新计算比对。
  */
 import crypto from 'crypto'
+
+const CAPTCHA_SECRET = process.env.CAPTCHA_SECRET || 'eval-captcha-secret-2024'
+const CAPTCHA_TTL = 5 * 60 * 1000 // 5 分钟过期
 
 interface CaptchaResult {
   base64Image: string
   hash: string
+  timestamp: number
 }
 
-/** 内存缓存验证码 hash → answer，5 分钟过期 */
-const captchaStore = new Map<string, { answer: string; expiresAt: number }>()
-
-/** 定期清理过期验证码 */
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, val] of captchaStore) {
-    if (val.expiresAt < now) captchaStore.delete(key)
-  }
-}, 60_000)
-
-function generateHash(text: string): string {
-  return crypto.createHash('sha256').update(text).digest('hex').slice(0, 16)
+function hmacSign(text: string): string {
+  return crypto.createHmac('sha256', CAPTCHA_SECRET).update(text).digest('hex').slice(0, 32)
 }
 
 function randomCode(len = 4): string {
@@ -52,7 +46,6 @@ function generateSvgCaptcha(code: string): string {
     textElements += `<text x="${x}" y="${y}" fill="${color}" font-size="24" font-family="Arial,sans-serif" transform="rotate(${rotate} ${x} ${y})">${code[i]}</text>`
   }
 
-  // 干扰线
   let lines = ''
   for (let i = 0; i < 4; i++) {
     const x1 = Math.random() * width
@@ -74,28 +67,25 @@ function generateSvgCaptcha(code: string): string {
 
 export function createCaptcha(): CaptchaResult {
   const answer = randomCode(4)
-  const hash = generateHash(answer.toLowerCase() + Date.now().toString())
-
-  captchaStore.set(hash, {
-    answer: answer.toLowerCase(),
-    expiresAt: Date.now() + 5 * 60 * 1000, // 5 分钟过期
-  })
+  const timestamp = Date.now()
+  const hash = hmacSign(answer.toLowerCase() + '|' + timestamp)
 
   return {
     base64Image: generateSvgCaptcha(answer),
     hash,
+    timestamp,
   }
 }
 
-export function verifyCaptcha(hash: string, userInput: string): boolean {
-  const record = captchaStore.get(hash)
-  if (!record) return false
-  if (record.expiresAt < Date.now()) {
-    captchaStore.delete(hash)
+export function verifyCaptcha(hash: string, userInput: string, timestamp?: number): boolean {
+  if (!hash || !userInput) return false
+
+  // 检查是否过期
+  if (timestamp && Date.now() - timestamp > CAPTCHA_TTL) {
     return false
   }
 
-  const valid = record.answer === userInput.toLowerCase()
-  if (valid) captchaStore.delete(hash) // 验证通过后删除，防止重复使用
-  return valid
+  // 重新计算 HMAC 比对
+  const expected = hmacSign(userInput.toLowerCase() + '|' + (timestamp ?? ''))
+  return expected === hash
 }

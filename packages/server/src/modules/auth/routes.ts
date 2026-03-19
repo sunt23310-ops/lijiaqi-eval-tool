@@ -33,6 +33,7 @@ router.get('/validCode', (_req: Request, res: Response) => {
     data: {
       base64Image: captcha.base64Image,
       hash: captcha.hash,
+      timestamp: captcha.timestamp,
     },
   })
 })
@@ -43,14 +44,14 @@ router.get('/validCode', (_req: Request, res: Response) => {
  * Body: { username, password, validCode, hash }
  */
 router.post('/login', (req: Request, res: Response) => {
-  const { username, password, validCode, hash } = req.body
+  const { username, password, validCode, hash, timestamp } = req.body
 
   if (!username || !password || !validCode || !hash) {
     return res.json({ code: 400, message: '缺少必填字段' })
   }
 
   // 1. 验证图片验证码
-  if (!verifyCaptcha(hash, validCode)) {
+  if (!verifyCaptcha(hash, validCode, timestamp)) {
     return res.json({ code: 400, message: '验证码错误或已过期' })
   }
 

@@ -82,6 +82,7 @@ const form = reactive({
 })
 const captchaImage = ref('')
 const captchaHash = ref('')
+const captchaTimestamp = ref(0)
 const errorMsg = ref('')
 const submitting = ref(false)
 
@@ -95,6 +96,7 @@ async function refreshCaptcha() {
     if (res.code === 200) {
       captchaImage.value = `<img src="${res.data.base64Image}" style="width:100%;height:100%;object-fit:contain" />`
       captchaHash.value = res.data.hash
+      captchaTimestamp.value = res.data.timestamp
     }
   } catch {
     captchaImage.value = '<span style="font-size:12px;color:#999">加载失败</span>'
@@ -116,6 +118,7 @@ async function handleLogin() {
       password: form.password,
       validCode: form.validCode,
       hash: captchaHash.value,
+      timestamp: captchaTimestamp.value,
     })
 
     if (res.code === 200) {
