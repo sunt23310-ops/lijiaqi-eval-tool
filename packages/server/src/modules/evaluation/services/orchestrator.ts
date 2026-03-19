@@ -1,30 +1,18 @@
 /**
- * 评测编排服务
+ * 评测编排服务 — 场景化评测
  *
- * 加载消息 → 填充 5 个维度 prompt → 并行调 LLM → 聚合结果 → 存入数据库
+ * 根据 session.sceneType 动态选择评测维度和 Prompt，
+ * 顺序调 LLM → 聚合结果 → 100分制打分 → 存入数据库
  */
 import { PrismaClient } from '@prisma/client'
+import type { SceneType } from '@eval/shared'
+import { SCENE_CONFIGS } from '@eval/shared'
 import { getLLMProvider } from '../../../llm/providers'
-import {
-  INTENT_RECOGNITION_PROMPT,
-  CONTEXT_UNDERSTANDING_PROMPT,
-  PERSONA_FLUENCY_PROMPT,
-  CONTENT_SAFETY_PROMPT,
-  RESPONSE_PERFORMANCE_PROMPT,
-  DIMENSIONS,
-  calculateOverallScore,
-  formatConversation,
-} from '../../../llm/prompts'
+import { getPromptForDimension, getSceneDimensions } from '../../../llm/prompts/promptRouter'
+import { calculateScoringDynamic, scaleScore } from './scoring'
+import { formatConversation } from '../../../llm/prompts'
 
 const prisma = new PrismaClient()
-
-const PROMPT_MAP: Record<string, string> = {
-  intent: INTENT_RECOGNITION_PROMPT,
-  context: CONTEXT_UNDERSTANDING_PROMPT,
-  persona: PERSONA_FLUENCY_PROMPT,
-  safety: CONTENT_SAFETY_PROMPT,
-  performance: RESPONSE_PERFORMANCE_PROMPT,
-}
 
 interface DimensionResult {
   score: number
@@ -33,24 +21,24 @@ interface DimensionResult {
 }
 
 function parseJSON(text: string): any {
-  // 尝试从 markdown 代码块中提取 JSON
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   const jsonStr = match ? match[1].trim() : text.trim()
   return JSON.parse(jsonStr)
 }
 
-async function evaluateDimension(key: string, conversation: string, metrics?: string): Promise<DimensionResult> {
+async function evaluateDimension(
+  sceneType: SceneType,
+  dimensionKey: string,
+  conversation: string,
+  metrics?: string,
+): Promise<DimensionResult> {
   const provider = getLLMProvider()
-  let prompt = PROMPT_MAP[key].replace('{conversation}', conversation)
-
-  if (key === 'performance' && metrics) {
-    prompt = prompt.replace('{metrics}', metrics)
-  }
+  const prompt = getPromptForDimension(sceneType, dimensionKey, conversation, metrics)
 
   try {
-    console.log(`[evaluation] starting dimension "${key}"`)
+    console.log(`[evaluation] starting dimension "${dimensionKey}" (scene: ${sceneType})`)
     const response = await provider.chat(prompt)
-    console.log(`[evaluation] dimension "${key}" completed`)
+    console.log(`[evaluation] dimension "${dimensionKey}" completed`)
     const parsed = parseJSON(response.content)
     return {
       score: parsed.score ?? 0,
@@ -58,19 +46,24 @@ async function evaluateDimension(key: string, conversation: string, metrics?: st
       details: parsed.details ?? {},
     }
   } catch (err: any) {
-    console.error(`[evaluation] dimension "${key}" failed:`, err.message)
+    console.error(`[evaluation] dimension "${dimensionKey}" failed:`, err.message)
     throw err
   }
 }
 
 export async function runEvaluation(sessionId: number, userId: number) {
-  // 1. 创建评测记录
+  // 1. 读取 session 获取 sceneType
+  const session = await prisma.session.findUnique({ where: { id: sessionId } })
+  if (!session) throw new Error('会话不存在')
+  const sceneType = (session.sceneType as SceneType) || 'hybrid'
+
+  // 2. 创建评测记录
   const evaluation = await prisma.evaluation.create({
-    data: { sessionId, userId, status: 'running' },
+    data: { sessionId, userId, status: 'running', sceneType },
   })
 
   try {
-    // 2. 加载所有消息
+    // 3. 加载所有消息
     const messages = await prisma.message.findMany({
       where: { sessionId },
       orderBy: { createdAt: 'asc' },
@@ -97,49 +90,96 @@ export async function runEvaluation(sessionId: number, userId: number) {
       error_count: aiMessages.filter((m) => !m.content).length,
     })
 
-    // 3. 顺序调 5 个维度（避免并发连接限制）
-    const results: PromiseSettledResult<DimensionResult>[] = []
-    for (const dim of DIMENSIONS) {
+    // 4. 获取场景维度配置
+    const dimensions = getSceneDimensions(sceneType)
+
+    // 5. 顺序评测每个维度
+    const rawScores: Record<string, number> = {}
+    const dimensionScores: any[] = []
+    const reasonings: Record<string, string> = {}
+
+    for (const dim of dimensions) {
       try {
-        const result = await evaluateDimension(dim.key, conversation, metrics)
-        results.push({ status: 'fulfilled', value: result })
-      } catch (err) {
-        results.push({ status: 'rejected', reason: err })
+        const result = await evaluateDimension(sceneType, dim.key, conversation, metrics)
+        rawScores[dim.key] = result.score
+        reasonings[dim.key] = result.reasoning
+        dimensionScores.push({
+          key: dim.key,
+          label: dim.label,
+          emoji: dim.emoji,
+          score: scaleScore(result.score),
+          maxScore: dim.maxScore,
+          weight: dim.weight,
+          reasoning: result.reasoning,
+          details: result.details,
+        })
+      } catch {
+        rawScores[dim.key] = 0
+        reasonings[dim.key] = '评测失败'
+        dimensionScores.push({
+          key: dim.key,
+          label: dim.label,
+          emoji: dim.emoji,
+          score: 0,
+          maxScore: dim.maxScore,
+          weight: dim.weight,
+          reasoning: '评测失败',
+          details: {},
+        })
       }
     }
 
-    // 4. 聚合结果
-    const scores: Record<string, number> = {}
-    const updateData: any = { status: 'completed', llmModelUsed: getLLMProvider().name }
+    // 6. 计算100分制总分
+    const scoring = calculateScoringDynamic(rawScores, dimensions)
 
-    DIMENSIONS.forEach((dim, i) => {
-      const result = results[i]
-      if (result.status === 'fulfilled') {
-        scores[dim.key] = result.value.score
-        updateData[`${dim.key}Score`] = result.value.score
-        updateData[`${dim.key}Reasoning`] = result.value.reasoning
-        updateData[`${dim.key}Details`] = result.value.details
-      } else {
-        scores[dim.key] = 0
-        updateData[`${dim.key}Score`] = 0
-        updateData[`${dim.key}Reasoning`] = `评测失败: ${result.reason?.message ?? 'unknown'}`
-      }
-    })
-
-    updateData.overallScore = calculateOverallScore(scores)
-
-    // 5. 生成优化建议（用最低分的 2 个维度）
-    const sorted = [...DIMENSIONS].sort((a, b) => (scores[a.key] ?? 0) - (scores[b.key] ?? 0))
-    updateData.suggestions = sorted.slice(0, 2).map((dim) => ({
-      dimension: dim.name,
+    // 7. 生成优化建议（最低分的2个维度）
+    const sorted = [...dimensionScores].sort((a, b) => a.score - b.score)
+    const suggestions = sorted.slice(0, 2).map((dim) => ({
+      dimension: dim.label,
       emoji: dim.emoji,
-      reasoning: updateData[`${dim.key}Reasoning`],
+      reasoning: dim.reasoning,
     }))
 
-    // 6. 生成报告叙述
-    updateData.reportNarrative = generateNarrative(scores, updateData)
+    // 8. 生成报告叙述
+    const best = dimensionScores.reduce((a, b) => a.score >= b.score ? a : b)
+    const worst = dimensionScores.reduce((a, b) => a.score <= b.score ? a : b)
+    const sceneLabel = SCENE_CONFIGS[sceneType]?.label || '混合场景'
 
-    // 7. 写回数据库
+    let level = '优秀'
+    if (scoring.overall < 75) level = '良好'
+    if (scoring.overall < 60) level = '一般'
+    if (scoring.overall < 40) level = '较差'
+
+    const reportNarrative = `【${sceneLabel}】本次评测综合得分 ${scoring.overall} 分（${scoring.grade} 级），整体表现${level}。` +
+      `${best.emoji} ${best.label}表现最佳（${best.score}分），` +
+      `${worst.emoji} ${worst.label}有改进空间（${worst.score}分）。` +
+      `共评测 ${dimensions.length} 个维度。`
+
+    // 9. 写回数据库
+    const updateData: any = {
+      status: 'completed',
+      sceneType,
+      overallScore: scoring.overall,
+      dimensionScores,
+      suggestions,
+      reportNarrative,
+      llmModelUsed: getLLMProvider().name,
+    }
+
+    // Legacy 字段兼容写入
+    for (const dim of dimensionScores) {
+      const legacyMap: Record<string, string> = {
+        intent: 'intent', context: 'context', persona: 'persona',
+        safety: 'safety', performance: 'performance',
+      }
+      const legacyKey = legacyMap[dim.key]
+      if (legacyKey) {
+        updateData[`${legacyKey}Score`] = rawScores[dim.key] ?? 0
+        updateData[`${legacyKey}Reasoning`] = dim.reasoning
+        updateData[`${legacyKey}Details`] = dim.details
+      }
+    }
+
     return prisma.evaluation.update({ where: { id: evaluation.id }, data: updateData })
   } catch (err: any) {
     await prisma.evaluation.update({
@@ -148,22 +188,6 @@ export async function runEvaluation(sessionId: number, userId: number) {
     })
     throw err
   }
-}
-
-function generateNarrative(scores: Record<string, number>, data: any): string {
-  const overall = data.overallScore
-  const best = DIMENSIONS.reduce((a, b) => ((scores[a.key] ?? 0) >= (scores[b.key] ?? 0) ? a : b))
-  const worst = DIMENSIONS.reduce((a, b) => ((scores[a.key] ?? 0) <= (scores[b.key] ?? 0) ? a : b))
-
-  let level = '优秀'
-  if (overall < 8) level = '良好'
-  if (overall < 6) level = '一般'
-  if (overall < 4) level = '较差'
-
-  return `本次评测综合得分 ${overall}，整体表现${level}。` +
-    `${best.emoji} ${best.name}表现最佳（${scores[best.key]}分），` +
-    `${worst.emoji} ${worst.name}有改进空间（${scores[worst.key]}分）。` +
-    (data.safetyReasoning ? `安全维度：${data.safetyReasoning}` : '')
 }
 
 export async function getEvaluation(evalId: number) {
@@ -178,7 +202,9 @@ export async function listEvaluations(sessionId: number) {
       id: true,
       sessionId: true,
       status: true,
+      sceneType: true,
       overallScore: true,
+      dimensionScores: true,
       intentScore: true,
       contextScore: true,
       personaScore: true,

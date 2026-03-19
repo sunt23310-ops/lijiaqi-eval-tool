@@ -1,8 +1,8 @@
 import request from '@/api/request'
 import type { Session, Message } from '@eval/shared'
 
-export function createSession(name: string) {
-  return request.post<any, { code: number; data: Session }>('/eval/api/v1/sessions', { name })
+export function createSession(name: string, sceneType?: string) {
+  return request.post<any, { code: number; data: Session }>('/eval/api/v1/sessions', { name, sceneType })
 }
 
 export function listSessions() {

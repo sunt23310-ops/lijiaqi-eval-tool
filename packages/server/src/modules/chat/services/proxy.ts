@@ -1,15 +1,12 @@
 /**
- * SSE 代理服务
+ * SSE Mock 服务
  *
- * 将前端请求转发到目标聊天 SSE API，流式回传。
- * 当 SSE API 未配置时，使用 mock 模式模拟李佳琦风格回复。
+ * 当所有 adapter 都未配置时，使用 mock 模式模拟李佳琦风格回复。
  */
-import type { Request, Response } from 'express'
-import { v4 as uuidv4 } from 'uuid'
-import { getConfig } from '../../../config'
+import type { Response } from 'express'
 
-interface ProxyParams {
-  conversationId: number
+interface MockParams {
+  conversationId: number | string
   messageType: number
   content: string
 }
@@ -42,13 +39,12 @@ function pickMockReply(content: string): string {
       return replies[Math.floor(Math.random() * replies.length)]
     }
   }
-  // 关键词未命中，从 default 中随机选
   const defaults = MOCK_REPLIES.default
   return defaults[Math.floor(Math.random() * defaults.length)]
 }
 
 // ─── Mock SSE 流式输出 ───────────────────────────────
-async function mockSSE(params: ProxyParams, res: Response) {
+export async function mockSSE(params: MockParams, res: Response) {
   const reply = pickMockReply(params.content)
 
   res.setHeader('Content-Type', 'text/event-stream')
@@ -57,79 +53,13 @@ async function mockSSE(params: ProxyParams, res: Response) {
   res.setHeader('X-Mock', 'true')
   res.flushHeaders()
 
-  // 逐段输出，模拟流式效果
-  const chunkSize = 2 + Math.floor(Math.random() * 4) // 2-5 字符一块
+  const chunkSize = 2 + Math.floor(Math.random() * 4)
   for (let i = 0; i < reply.length; i += chunkSize) {
     const chunk = reply.slice(i, i + chunkSize)
     res.write(`data:${JSON.stringify({ content: chunk })}\n\n`)
-    // 模拟打字延迟 30-80ms
     await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)))
   }
 
   res.write('data:[Done]\n\n')
   res.end()
-}
-
-// ─── 主逻辑 ─────────────────────────────────────────
-export async function proxySSE(params: ProxyParams, req: Request, res: Response) {
-  const config = getConfig()
-
-  // SSE API 未配置时使用 mock 模式
-  if (!config.sseApiBaseUrl) {
-    return mockSSE(params, res)
-  }
-
-  const url = `${config.sseApiBaseUrl}/chat/api/sse`
-  const traceId = uuidv4()
-
-  try {
-    const upstream = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'platform': 'c-wx',
-        'trace-id': traceId,
-        'token': config.sseApiToken,
-      },
-      body: JSON.stringify(params),
-    })
-
-    if (!upstream.ok) {
-      return res.status(upstream.status).json({
-        code: upstream.status,
-        message: `SSE upstream error: ${upstream.statusText}`,
-      })
-    }
-
-    // 设置 SSE 响应头
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.setHeader('X-Trace-Id', traceId)
-    res.flushHeaders()
-
-    // 流式转发
-    const reader = upstream.body?.getReader()
-    if (!reader) {
-      res.end()
-      return
-    }
-
-    const decoder = new TextDecoder()
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value, { stream: true })
-      res.write(chunk)
-    }
-
-    res.end()
-  } catch (err: any) {
-    if (!res.headersSent) {
-      res.status(500).json({ code: 500, message: `SSE proxy error: ${err.message}` })
-    } else {
-      res.end()
-    }
-  }
 }

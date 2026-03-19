@@ -23,7 +23,7 @@
     <Teleport to="body">
       <div v-if="showPresetModal" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/25" @click="showPresetModal = false" />
-        <div class="relative w-[480px] bg-[var(--md-surface-container-high)] rounded-3xl p-6 shadow-xl">
+        <div class="relative w-[520px] bg-[var(--md-surface-container-high)] rounded-3xl p-6 shadow-xl">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-[var(--md-on-surface)]">选择预设测试场景</h3>
             <button @click="showPresetModal = false" class="p-1.5 rounded-lg hover:bg-[var(--md-surface-container-highest)] transition">
@@ -31,14 +31,29 @@
             </button>
           </div>
 
+          <!-- 推荐提示 -->
+          <p class="text-xs text-[var(--md-on-surface-variant)] mb-3">
+            当前会话场景：<strong class="text-[var(--md-primary)]">{{ currentSceneLabel }}</strong>
+            <span v-if="recommendedPresets.length > 0"> — 推荐使用匹配的预设</span>
+          </p>
+
           <div class="grid grid-cols-2 gap-3">
             <div
-              v-for="preset in presets"
+              v-for="preset in sortedPresets"
               :key="preset.key"
               @click="selectPreset(preset)"
-              class="p-4 rounded-2xl bg-[var(--md-surface-container)] hover:bg-[var(--md-secondary-container)] cursor-pointer transition group"
+              class="p-4 rounded-2xl cursor-pointer transition group"
+              :class="preset.sceneType === chatStore.currentSceneType
+                ? 'bg-[var(--md-primary-container)] hover:opacity-90 ring-1 ring-[var(--md-primary)]'
+                : 'bg-[var(--md-surface-container)] hover:bg-[var(--md-secondary-container)]'"
             >
-              <div class="text-2xl mb-2">{{ preset.emoji }}</div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-2xl">{{ preset.emoji }}</span>
+                <span
+                  v-if="preset.sceneType === chatStore.currentSceneType"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--md-primary)] text-[var(--md-on-primary)]"
+                >推荐</span>
+              </div>
               <div class="text-sm font-medium text-[var(--md-on-surface)] mb-1">{{ preset.name }}</div>
               <div class="text-xs text-[var(--md-on-surface-variant)] mb-2 line-clamp-2">{{ preset.description }}</div>
               <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]">
@@ -79,11 +94,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { BookOpen, Wand2, X } from 'lucide-vue-next'
-import { getPresets, generateMockQuestions, type PresetScenario } from '@/modules/evaluation/api/mock'
+import { SCENE_CONFIGS } from '@eval/shared'
+import { getPresets, generateMockQuestions } from '@/modules/evaluation/api/mock'
 import { useChatStore } from '@/modules/evaluation/stores/chatStore'
 import { useChat } from '@/modules/evaluation/composables/useChat'
+
+interface PresetScenario {
+  key: string
+  name: string
+  emoji: string
+  description: string
+  rounds: number
+  sceneType?: string
+  messages: string[]
+}
 
 const chatStore = useChatStore()
 const chat = useChat()
@@ -93,6 +119,21 @@ const showAIModal = ref(false)
 const presets = ref<PresetScenario[]>([])
 const generating = ref(false)
 const aiQuestions = ref<string[]>([])
+
+const currentSceneLabel = computed(() =>
+  SCENE_CONFIGS[chatStore.currentSceneType]?.label || '混合场景'
+)
+
+// 匹配当前场景的预设排在前面
+const recommendedPresets = computed(() =>
+  presets.value.filter(p => p.sceneType === chatStore.currentSceneType)
+)
+
+const sortedPresets = computed(() => {
+  const matched = presets.value.filter(p => p.sceneType === chatStore.currentSceneType)
+  const others = presets.value.filter(p => p.sceneType !== chatStore.currentSceneType)
+  return [...matched, ...others]
+})
 
 onMounted(async () => {
   try {

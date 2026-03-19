@@ -2,9 +2,18 @@
   <div class="flex-1 flex flex-col min-w-0 bg-[var(--md-surface)]">
     <!-- 顶部栏 -->
     <div class="h-14 flex items-center justify-between px-6 border-b border-[var(--md-outline-variant)]">
-      <h2 class="text-base font-medium text-[var(--md-on-surface)] truncate">
-        {{ chatStore.currentSession?.name || '选择或创建会话' }}
-      </h2>
+      <div class="flex items-center gap-3 min-w-0">
+        <h2 class="text-base font-medium text-[var(--md-on-surface)] truncate">
+          {{ chatStore.currentSession?.name || '选择或创建会话' }}
+        </h2>
+        <!-- 场景标签 -->
+        <span
+          v-if="chatStore.currentSession"
+          class="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]"
+        >
+          {{ sceneLabel }}
+        </span>
+      </div>
       <MockDataControls v-if="chatStore.currentSessionId" />
     </div>
 
@@ -45,9 +54,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { Bot, MessageSquare } from 'lucide-vue-next'
 import MarkdownIt from 'markdown-it'
+import { SCENE_CONFIGS } from '@eval/shared'
 import { useChatStore } from '@/modules/evaluation/stores/chatStore'
 import { useChat } from '@/modules/evaluation/composables/useChat'
 import MessageBubble from './MessageBubble.vue'
@@ -59,6 +69,11 @@ const chat = useChat()
 const messagesContainer = ref<HTMLElement | null>(null)
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
+
+const sceneLabel = computed(() => {
+  const sceneType = chatStore.currentSceneType
+  return SCENE_CONFIGS[sceneType]?.label || '混合场景'
+})
 
 function renderMarkdown(content: string) {
   return md.render(content)

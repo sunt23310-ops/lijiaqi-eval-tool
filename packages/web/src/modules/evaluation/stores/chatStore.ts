@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Session, Message } from '@eval/shared'
+import type { Session, Message, SceneType } from '@eval/shared'
 import * as sessionsApi from '../api/sessions'
 
 export const useChatStore = defineStore('chat', () => {
@@ -15,13 +15,17 @@ export const useChatStore = defineStore('chat', () => {
     sessions.value.find((s) => s.id === currentSessionId.value) ?? null
   )
 
+  const currentSceneType = computed<SceneType>(() =>
+    (currentSession.value?.sceneType as SceneType) || 'hybrid'
+  )
+
   async function fetchSessions() {
     const res = await sessionsApi.listSessions()
     sessions.value = (res as any).data ?? res
   }
 
-  async function createSession(name: string) {
-    const res = await sessionsApi.createSession(name)
+  async function createSession(name: string, sceneType?: SceneType) {
+    const res = await sessionsApi.createSession(name, sceneType)
     const session = (res as any).data ?? res
     sessions.value.unshift(session)
     currentSessionId.value = session.id
@@ -87,6 +91,7 @@ export const useChatStore = defineStore('chat', () => {
     sessions,
     currentSessionId,
     currentSession,
+    currentSceneType,
     messages,
     isStreaming,
     streamingContent,

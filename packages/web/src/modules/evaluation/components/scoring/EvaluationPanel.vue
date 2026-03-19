@@ -34,7 +34,7 @@
         <div class="flex flex-col items-center justify-center h-full">
           <div class="w-10 h-10 border-3 border-[var(--md-primary)] border-t-transparent rounded-full animate-spin mb-4" />
           <p class="text-sm text-[var(--md-on-surface-variant)]">正在评测中，请稍候...</p>
-          <p class="text-xs text-[var(--md-on-surface-variant)] mt-1">5 个维度并行评测</p>
+          <p class="text-xs text-[var(--md-on-surface-variant)] mt-1">{{ dimensionCount }} 个维度逐项评测</p>
         </div>
       </template>
 
@@ -52,7 +52,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Zap, BarChart3 } from 'lucide-vue-next'
+import { SCENE_CONFIGS } from '@eval/shared'
 import { useChatStore } from '@/modules/evaluation/stores/chatStore'
 import { useEvaluationStore } from '@/modules/evaluation/stores/evaluationStore'
 import { useEvaluation } from '@/modules/evaluation/composables/useEvaluation'
@@ -62,6 +64,11 @@ import ReportDetail from './ReportDetail.vue'
 const chatStore = useChatStore()
 const evalStore = useEvaluationStore()
 const { evaluate } = useEvaluation()
+
+const dimensionCount = computed(() => {
+  const sceneType = chatStore.currentSceneType
+  return SCENE_CONFIGS[sceneType]?.dimensions.length ?? 5
+})
 
 async function handleEvaluate() {
   try {

@@ -5,8 +5,8 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export async function createSession(userId: number, name: string) {
-  return prisma.session.create({ data: { userId, name } })
+export async function createSession(userId: number, name: string, sceneType?: string) {
+  return prisma.session.create({ data: { userId, name, sceneType: sceneType || 'hybrid' } })
 }
 
 export async function listSessions(userId: number) {

@@ -91,6 +91,7 @@ configRouter.get('/', (_req, res) => {
   res.json({
     code: 200,
     data: {
+      chatAdapterType: cfg.chatAdapterType,
       sseApiBaseUrl: cfg.sseApiBaseUrl,
       llmProvider: cfg.llmProvider,
       openaiModel: cfg.openaiModel,
@@ -98,6 +99,7 @@ configRouter.get('/', (_req, res) => {
       hasOpenaiKey: !!cfg.openaiApiKey,
       hasAnthropicKey: !!cfg.anthropicApiKey,
       hasSseToken: !!cfg.sseApiToken,
+      customEndpoint: cfg.customEndpoint,
     },
   })
 })
@@ -125,14 +127,11 @@ mockRouter.post('/generate', async (req, res) => {
 app.use('/eval/api/v1/mock', mockRouter)
 
 // ─── Backward compat: keep old SSE path as alias ────────
-// /eval/api/v1/sse/proxy → same handler as /eval/api/v1/chat/stream
-import { proxySSE } from './modules/chat/services/proxy'
-app.post('/eval/api/v1/sse/proxy', async (req, res) => {
-  const { conversationId, messageType, content } = req.body
-  if (!conversationId || !content) {
-    return res.json({ code: 400, message: '缺少 conversationId 或 content' })
-  }
-  await proxySSE({ conversationId, messageType: messageType ?? 1, content }, req, res)
+// /eval/api/v1/sse/proxy → rewrite to /eval/api/v1/chat/stream
+app.post('/eval/api/v1/sse/proxy', (req, res, next) => {
+  // Forward to chat/stream handler
+  req.url = '/stream'
+  chatRoutes(req, res, next)
 })
 
 // ─── Backward compat: keep old model-files path as alias ──

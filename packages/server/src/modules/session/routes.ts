@@ -8,7 +8,7 @@ const router = Router()
 
 router.post('/', async (req, res) => {
   try {
-    const session = await sessionService.createSession(req.user!.userId, req.body.name || '新会话')
+    const session = await sessionService.createSession(req.user!.userId, req.body.name || '新会话', req.body.sceneType)
     res.json({ code: 200, data: session })
   } catch (err: any) {
     res.json({ code: 500, message: err.message })
