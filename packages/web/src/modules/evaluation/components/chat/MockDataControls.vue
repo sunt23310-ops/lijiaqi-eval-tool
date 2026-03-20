@@ -256,8 +256,9 @@ async function handleAIGenerate() {
     const res = await generateMockQuestions(msgs)
     aiQuestions.value = (res as any).data ?? res
     showAIModal.value = true
-  } catch (err) {
+  } catch (err: any) {
     console.error('AI 生成失败:', err)
+    alert('AI 生成失败: ' + (err?.response?.data?.message || err?.message || '未知错误'))
   } finally {
     generating.value = false
   }

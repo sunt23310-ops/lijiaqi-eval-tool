@@ -118,9 +118,12 @@ mockRouter.get('/presets', (_req, res) => {
 })
 mockRouter.post('/generate', async (req, res) => {
   try {
+    console.log('[mock/generate] starting with', req.body.messages?.length, 'messages')
     const questions = await mockService.generateMockQuestions(req.body.messages || [])
+    console.log('[mock/generate] success, got', questions.length, 'questions')
     res.json({ code: 200, data: questions })
   } catch (err: any) {
+    console.error('[mock/generate] error:', err.message, err.stack?.slice(0, 200))
     res.json({ code: 500, message: err.message })
   }
 })

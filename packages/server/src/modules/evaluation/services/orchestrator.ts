@@ -93,39 +93,49 @@ export async function runEvaluation(sessionId: number, userId: number) {
     // 4. 获取场景维度配置
     const dimensions = getSceneDimensions(sceneType)
 
-    // 5. 顺序评测每个维度
+    // 5. 并行评测维度（每批3个）
     const rawScores: Record<string, number> = {}
     const dimensionScores: any[] = []
     const reasonings: Record<string, string> = {}
 
-    for (const dim of dimensions) {
-      try {
-        const result = await evaluateDimension(sceneType, dim.key, conversation, metrics)
-        rawScores[dim.key] = result.score
-        reasonings[dim.key] = result.reasoning
-        dimensionScores.push({
-          key: dim.key,
-          label: dim.label,
-          emoji: dim.emoji,
-          score: scaleScore(result.score),
-          maxScore: dim.maxScore,
-          weight: dim.weight,
-          reasoning: result.reasoning,
-          details: result.details,
-        })
-      } catch {
-        rawScores[dim.key] = 0
-        reasonings[dim.key] = '评测失败'
-        dimensionScores.push({
-          key: dim.key,
-          label: dim.label,
-          emoji: dim.emoji,
-          score: 0,
-          maxScore: dim.maxScore,
-          weight: dim.weight,
-          reasoning: '评测失败',
-          details: {},
-        })
+    const BATCH_SIZE = 3
+    for (let i = 0; i < dimensions.length; i += BATCH_SIZE) {
+      const batch = dimensions.slice(i, i + BATCH_SIZE)
+      const results = await Promise.allSettled(
+        batch.map(dim => evaluateDimension(sceneType, dim.key, conversation, metrics))
+      )
+
+      for (let j = 0; j < batch.length; j++) {
+        const dim = batch[j]
+        const result = results[j]
+        if (result.status === 'fulfilled') {
+          rawScores[dim.key] = result.value.score
+          reasonings[dim.key] = result.value.reasoning
+          dimensionScores.push({
+            key: dim.key,
+            label: dim.label,
+            emoji: dim.emoji,
+            score: scaleScore(result.value.score),
+            maxScore: dim.maxScore,
+            weight: dim.weight,
+            reasoning: result.value.reasoning,
+            details: result.value.details,
+          })
+        } else {
+          console.error(`[evaluation] dimension "${dim.key}" failed:`, result.reason)
+          rawScores[dim.key] = 0
+          reasonings[dim.key] = '评测失败'
+          dimensionScores.push({
+            key: dim.key,
+            label: dim.label,
+            emoji: dim.emoji,
+            score: 0,
+            maxScore: dim.maxScore,
+            weight: dim.weight,
+            reasoning: '评测失败',
+            details: {},
+          })
+        }
       }
     }
 

@@ -13,8 +13,8 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({
       apiKey,
       baseURL: baseURL || undefined,
-      timeout: 10_000,    // 10 秒超时（5个维度串行，总计需在60秒内完成）
-      maxRetries: 0,      // 不重试，节省时间
+      timeout: 55_000,   // 55 秒超时（Vercel 函数最大 60 秒）
+      maxRetries: 1,
     })
     this.model = model
   }
