@@ -73,6 +73,32 @@ app.use(async (_req, _res, next) => {
 // ─── Public 路由（无需鉴权）───────────────────────
 app.use('/eval/public/v1/auth', authRoutes)
 
+// Diagnostic: test LLM connectivity (public, temporary)
+app.get('/eval/public/v1/test-llm', async (_req, res) => {
+  const cfg = getConfig()
+  const baseUrl = cfg.openaiBaseUrl
+  const testUrl = `${baseUrl}${baseUrl.endsWith('/v1') ? '' : '/v1'}/chat/completions`
+  try {
+    const resp = await fetch(testUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cfg.openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.openaiModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        max_tokens: 5,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    const body = await resp.text()
+    res.json({ code: 200, status: resp.status, baseUrl, testUrl, model: cfg.openaiModel, body: body.slice(0, 500) })
+  } catch (err: any) {
+    res.json({ code: 500, baseUrl, testUrl, model: cfg.openaiModel, error: err.message, cause: String(err.cause ?? '') })
+  }
+})
+
 // ─── API 路由（需要鉴权）─────────────────────────
 app.use('/eval/api/v1', authMiddleware)
 
