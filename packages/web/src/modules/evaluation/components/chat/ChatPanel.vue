@@ -6,13 +6,31 @@
         <h2 class="text-base font-medium text-[var(--md-on-surface)] truncate">
           {{ chatStore.currentSession?.name || '选择或创建会话' }}
         </h2>
-        <!-- 场景标签 -->
-        <span
-          v-if="chatStore.currentSession"
-          class="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]"
-        >
-          {{ sceneLabel }}
-        </span>
+        <!-- 场景选择下拉 -->
+        <div v-if="chatStore.currentSession" class="relative">
+          <button
+            @click="showSceneMenu = !showSceneMenu"
+            class="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] hover:opacity-80 transition"
+          >
+            {{ sceneEmoji }} {{ sceneLabel }}
+            <ChevronDown :size="12" />
+          </button>
+          <div
+            v-if="showSceneMenu"
+            class="absolute top-full left-0 mt-1 w-48 py-1 rounded-xl bg-[var(--md-surface-container-high)] shadow-lg border border-[var(--md-outline-variant)] z-20"
+          >
+            <button
+              v-for="scene in sceneOptions"
+              :key="scene.type"
+              @click="switchScene(scene.type)"
+              class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--md-secondary-container)] transition flex items-center gap-2"
+              :class="scene.type === chatStore.currentSceneType ? 'text-[var(--md-primary)] font-medium' : 'text-[var(--md-on-surface)]'"
+            >
+              <span>{{ scene.emoji }}</span>
+              <span>{{ scene.label }}</span>
+            </button>
+          </div>
+        </div>
       </div>
       <MockDataControls v-if="chatStore.currentSessionId" />
     </div>
@@ -44,6 +62,11 @@
       </div>
     </div>
 
+    <!-- 点击外部关闭下拉菜单 -->
+    <Teleport to="body">
+      <div v-if="showSceneMenu" class="fixed inset-0 z-10" @click="showSceneMenu = false" />
+    </Teleport>
+
     <!-- 输入框 -->
     <MessageInput
       v-if="chatStore.currentSessionId"
@@ -55,9 +78,10 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
-import { Bot, MessageSquare } from 'lucide-vue-next'
+import { Bot, MessageSquare, ChevronDown } from 'lucide-vue-next'
 import MarkdownIt from 'markdown-it'
 import { SCENE_CONFIGS } from '@eval/shared'
+import type { SceneType } from '@eval/shared'
 import { useChatStore } from '@/modules/evaluation/stores/chatStore'
 import { useChat } from '@/modules/evaluation/composables/useChat'
 import MessageBubble from './MessageBubble.vue'
@@ -67,13 +91,35 @@ import MockDataControls from './MockDataControls.vue'
 const chatStore = useChatStore()
 const chat = useChat()
 const messagesContainer = ref<HTMLElement | null>(null)
+const showSceneMenu = ref(false)
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
+
+const SCENE_EMOJIS: Record<string, string> = {
+  consult: '🧴', promo: '🎉', service: '🔧', chat: '💬', hybrid: '🔄',
+}
 
 const sceneLabel = computed(() => {
   const sceneType = chatStore.currentSceneType
   return SCENE_CONFIGS[sceneType]?.label || '混合场景'
 })
+
+const sceneEmoji = computed(() => SCENE_EMOJIS[chatStore.currentSceneType] || '🔄')
+
+const sceneOptions = computed(() =>
+  Object.entries(SCENE_CONFIGS).map(([type, config]) => ({
+    type: type as SceneType,
+    label: config.label,
+    emoji: SCENE_EMOJIS[type] || '🔄',
+  }))
+)
+
+function switchScene(sceneType: SceneType) {
+  showSceneMenu.value = false
+  if (sceneType !== chatStore.currentSceneType) {
+    chatStore.updateSceneType(sceneType)
+  }
+}
 
 function renderMarkdown(content: string) {
   return md.render(content)

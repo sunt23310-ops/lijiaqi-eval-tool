@@ -21,6 +21,10 @@ export async function getSession(id: number) {
   return prisma.session.findUnique({ where: { id }, include: { messages: { orderBy: { createdAt: 'asc' } } } })
 }
 
+export async function updateSession(id: number, data: { name?: string; sceneType?: string }) {
+  return prisma.session.update({ where: { id }, data })
+}
+
 export async function deleteSession(id: number) {
   return prisma.session.delete({ where: { id } })
 }

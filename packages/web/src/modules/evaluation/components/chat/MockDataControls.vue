@@ -241,6 +241,10 @@ function closeModal() {
 
 function selectFile(file: PresetFile) {
   closeModal()
+  // 根据预设文件的场景类型更新当前会话的 sceneType
+  if (file.sceneType && file.sceneType !== chatStore.currentSceneType) {
+    chatStore.updateSceneType(file.sceneType as any)
+  }
   chat.startAutoSend(file.messages)
 }
 

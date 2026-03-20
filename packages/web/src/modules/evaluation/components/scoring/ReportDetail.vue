@@ -64,6 +64,52 @@
       </div>
     </div>
 
+    <!-- Chat 场景：14项检查表 -->
+    <div v-if="evaluation.checklistResults?.length" class="p-4 rounded-2xl bg-[var(--md-surface-container-high)]">
+      <h4 class="text-sm font-medium text-[var(--md-on-surface)] mb-3">对话质量检查表</h4>
+      <div v-for="group in checklistGroups" :key="group.category" class="mb-3 last:mb-0">
+        <div class="text-xs font-medium text-[var(--md-on-surface-variant)] mb-1.5">{{ group.label }}</div>
+        <div class="space-y-1">
+          <div
+            v-for="item in group.items"
+            :key="item.id"
+            class="flex items-start gap-2 text-xs"
+          >
+            <span :class="item.passed ? 'text-green-600' : 'text-red-500'" class="flex-shrink-0 mt-0.5">
+              {{ item.passed ? '✓' : '✗' }}
+            </span>
+            <span class="text-[var(--md-on-surface)]">{{ item.description }}</span>
+            <span v-if="item.note" class="text-[var(--md-on-surface-variant)] ml-auto flex-shrink-0">{{ item.note }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-2 text-xs text-[var(--md-on-surface-variant)]">
+        通过 {{ checklistPassCount }}/{{ evaluation.checklistResults.length }} 项
+      </div>
+    </div>
+
+    <!-- Chat 场景：年龄分层 -->
+    <div v-if="evaluation.ageStratification" class="p-4 rounded-2xl bg-[var(--md-surface-container-high)]">
+      <h4 class="text-sm font-medium text-[var(--md-on-surface)] mb-2">年龄分层适配</h4>
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]">
+          {{ evaluation.ageStratification.label || evaluation.ageStratification.ageGroup }}
+        </span>
+        <div class="flex-1 h-1.5 bg-[var(--md-outline-variant)] rounded-full overflow-hidden">
+          <div
+            class="h-full bg-[var(--md-primary)] rounded-full"
+            :style="{ width: evaluation.ageStratification.compliance + '%' }"
+          />
+        </div>
+        <span class="text-xs font-medium text-[var(--md-primary)]">{{ evaluation.ageStratification.compliance }}%</span>
+      </div>
+      <div v-if="evaluation.ageStratification.guidelines?.length" class="mt-2 space-y-0.5">
+        <div v-for="(g, i) in evaluation.ageStratification.guidelines" :key="i" class="text-[11px] text-[var(--md-on-surface-variant)]">
+          · {{ g }}
+        </div>
+      </div>
+    </div>
+
     <!-- 优化建议 -->
     <SuggestionList
       v-if="evaluation.suggestions?.length"
@@ -84,7 +130,7 @@
 import { computed } from 'vue'
 import { ArrowLeft } from 'lucide-vue-next'
 import { SCENE_CONFIGS } from '@eval/shared'
-import type { SceneType } from '@eval/shared'
+import type { SceneType, ChecklistItem } from '@eval/shared'
 import { useEvaluationStore } from '@/modules/evaluation/stores/evaluationStore'
 import RadarChart from './RadarChart.vue'
 import SuggestionList from './SuggestionList.vue'
@@ -110,7 +156,6 @@ const sceneLabel = computed(() => {
 // 100分制显示
 const displayScore = computed(() => {
   const score = evaluation.value?.overallScore ?? 0
-  // 如果是旧格式（10分制），转换显示
   if (score <= 10 && !evaluation.value?.dimensionScores?.length) {
     return (score * 10).toFixed(0)
   }
@@ -131,7 +176,6 @@ const rankedDimensions = computed(() => {
   const e = evaluation.value
   if (!e) return []
 
-  // 新格式：直接使用 dimensionScores
   if (e.dimensionScores?.length) {
     return [...e.dimensionScores]
       .sort((a, b) => b.score - a.score)
@@ -150,7 +194,7 @@ const rankedDimensions = computed(() => {
       key: dim.key,
       label: dim.label,
       emoji: dim.emoji,
-      score: getLegacyScore(dim.key) * 10, // 转换到100分制近似
+      score: getLegacyScore(dim.key) * 10,
       reasoning: getLegacyReasoning(dim.key),
     }))
     .sort((a, b) => b.score - a.score)
@@ -158,11 +202,39 @@ const rankedDimensions = computed(() => {
 
 const radarScores = computed(() =>
   rankedDimensions.value
-    .sort((a, b) => a.key.localeCompare(b.key)) // 固定顺序给雷达图
+    .sort((a, b) => a.key.localeCompare(b.key))
     .map(d => ({
       name: d.label,
-      value: d.score / 10, // RadarChart 期望 0-10
+      value: d.score / 10,
     }))
+)
+
+// Chat 检查表分组
+const CATEGORY_LABELS: Record<string, string> = {
+  persona: 'A. 人设一致性',
+  emotion: 'B. 情绪共鸣',
+  naturalness: 'C. 自然度',
+  profile: 'D. 画像运用',
+}
+
+const checklistGroups = computed(() => {
+  const items = evaluation.value?.checklistResults ?? []
+  const groups: Record<string, { category: string; label: string; items: ChecklistItem[] }> = {}
+  for (const item of items) {
+    if (!groups[item.category]) {
+      groups[item.category] = {
+        category: item.category,
+        label: CATEGORY_LABELS[item.category] || item.categoryLabel || item.category,
+        items: [],
+      }
+    }
+    groups[item.category].items.push(item)
+  }
+  return Object.values(groups)
+})
+
+const checklistPassCount = computed(() =>
+  (evaluation.value?.checklistResults ?? []).filter(c => c.passed).length
 )
 
 function getLegacyScore(key: string): number {

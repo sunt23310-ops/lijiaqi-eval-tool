@@ -13,6 +13,10 @@ export function getSession(id: number) {
   return request.get<any, { code: number; data: Session }>(`/eval/api/v1/sessions/${id}`)
 }
 
+export function updateSession(id: number, data: { name?: string; sceneType?: string }) {
+  return request.patch<any, { code: number; data: Session }>(`/eval/api/v1/sessions/${id}`, data)
+}
+
 export function deleteSession(id: number) {
   return request.delete<any, { code: number }>(`/eval/api/v1/sessions/${id}`)
 }

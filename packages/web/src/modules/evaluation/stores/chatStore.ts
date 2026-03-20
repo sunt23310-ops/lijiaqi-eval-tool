@@ -87,6 +87,14 @@ export const useChatStore = defineStore('chat', () => {
     streamingContent.value = ''
   }
 
+  async function updateSceneType(sceneType: SceneType) {
+    if (!currentSessionId.value) return
+    const res = await sessionsApi.updateSession(currentSessionId.value, { sceneType })
+    const updated = (res as any).data ?? res
+    const idx = sessions.value.findIndex(s => s.id === currentSessionId.value)
+    if (idx !== -1) sessions.value[idx] = { ...sessions.value[idx], ...updated }
+  }
+
   return {
     sessions,
     currentSessionId,
@@ -100,6 +108,7 @@ export const useChatStore = defineStore('chat', () => {
     createSession,
     selectSession,
     removeSession,
+    updateSceneType,
     saveMessage,
     appendStreamChunk,
     startStreaming,

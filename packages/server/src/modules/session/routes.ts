@@ -34,6 +34,15 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+router.patch('/:id', async (req, res) => {
+  try {
+    const session = await sessionService.updateSession(Number(req.params.id), req.body)
+    res.json({ code: 200, data: session })
+  } catch (err: any) {
+    res.json({ code: 500, message: err.message })
+  }
+})
+
 router.delete('/:id', async (req, res) => {
   try {
     await sessionService.deleteSession(Number(req.params.id))
