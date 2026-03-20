@@ -26,9 +26,6 @@
         <div class="flex items-center gap-2 min-w-0">
           <MessageSquare :size="16" class="flex-shrink-0" />
           <span class="truncate text-sm">{{ session.name }}</span>
-          <span class="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[var(--md-outline-variant)] text-[var(--md-on-surface-variant)]">
-            {{ getSceneLabel(session.sceneType) }}
-          </span>
         </div>
         <button
           @click.stop="handleDelete(session.id)"
@@ -98,8 +95,6 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Plus, MessageSquare, Trash2, LogOut, ShieldAlert, Database, ScanSearch } from 'lucide-vue-next'
-import type { SceneType } from '@eval/shared'
-import { SCENE_CONFIGS } from '@eval/shared'
 import { useChatStore } from '@/modules/evaluation/stores/chatStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useEvaluationStore } from '@/modules/evaluation/stores/evaluationStore'
@@ -109,11 +104,6 @@ const authStore = useAuthStore()
 const evalStore = useEvaluationStore()
 const router = useRouter()
 const route = useRoute()
-
-function getSceneLabel(sceneType?: string): string {
-  if (!sceneType) return '混合'
-  return SCENE_CONFIGS[sceneType as SceneType]?.label || '混合'
-}
 
 onMounted(() => {
   chatStore.fetchSessions()

@@ -60,5 +60,7 @@ export async function generateMockQuestions(
   const jsonStr = match ? match[1].trim() : response.content.trim()
   const parsed = JSON.parse(jsonStr)
 
-  return parsed.questions ?? []
+  const questions = parsed.questions ?? []
+  // LLM 返回 { type, content, test_focus } 对象，前端只需要 content 字符串
+  return questions.map((q: any) => (typeof q === 'string' ? q : q.content || String(q)))
 }
