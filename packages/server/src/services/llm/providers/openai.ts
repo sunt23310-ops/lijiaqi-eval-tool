@@ -24,7 +24,7 @@ export class OpenAIProvider implements LLMProvider {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       temperature: options?.temperature ?? 0.3,
-      max_tokens: options?.maxTokens ?? 1024,
+      max_tokens: options?.maxTokens ?? 8192,
     })
 
     return {
