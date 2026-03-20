@@ -21,9 +21,16 @@ interface DimensionResult {
 }
 
 function parseJSON(text: string): any {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const jsonStr = match ? match[1].trim() : text.trim()
-  return JSON.parse(jsonStr)
+  try {
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    const jsonStr = match ? match[1].trim() : text.trim()
+    return JSON.parse(jsonStr)
+  } catch {
+    // Fallback: extract first JSON object
+    const objMatch = text.match(/(\{[\s\S]*\})/)
+    if (objMatch) return JSON.parse(objMatch[1])
+    throw new Error('无法从 LLM 响应中提取 JSON')
+  }
 }
 
 async function evaluateDimension(

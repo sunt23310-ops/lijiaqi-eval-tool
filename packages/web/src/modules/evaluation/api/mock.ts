@@ -16,5 +16,5 @@ export function getPresets() {
 export function generateMockQuestions(messages: Array<{ role: string; content: string }>) {
   return request.post<any, { code: number; data: string[] }>('/eval/api/v1/mock/generate', {
     messages,
-  })
+  }, { timeout: 60_000 }) // LLM调用需要更长时间
 }

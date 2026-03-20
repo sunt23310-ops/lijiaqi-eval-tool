@@ -55,10 +55,30 @@ export async function generateMockQuestions(
 
   const response = await provider.chat(prompt, { temperature: 0.7 })
 
-  // 解析 JSON
-  const match = response.content.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const jsonStr = match ? match[1].trim() : response.content.trim()
-  const parsed = JSON.parse(jsonStr)
+  // 健壮的 JSON 解析：处理 Gemini 等模型返回非标准格式
+  const raw = response.content
+  console.log('[mock/generate] raw LLM response (first 300 chars):', raw.slice(0, 300))
+
+  let parsed: any
+  try {
+    // 尝试1：提取 ```json ... ``` 块
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+    const jsonStr = match ? match[1].trim() : raw.trim()
+    parsed = JSON.parse(jsonStr)
+  } catch {
+    try {
+      // 尝试2：提取第一个 { ... } 或 [ ... ]
+      const objMatch = raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
+      if (objMatch) {
+        parsed = JSON.parse(objMatch[1])
+      } else {
+        throw new Error('无法从 LLM 响应中提取 JSON')
+      }
+    } catch (e2: any) {
+      console.error('[mock/generate] JSON parse failed:', e2.message, '\nraw:', raw.slice(0, 500))
+      throw new Error('LLM 返回格式异常，无法解析')
+    }
+  }
 
   const questions = parsed.questions ?? []
   // LLM 返回 { type, content, test_focus } 对象，前端只需要 content 字符串

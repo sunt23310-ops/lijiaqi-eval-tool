@@ -3,7 +3,9 @@ import type { Evaluation, EvaluationSummary } from '@eval/shared'
 
 export function triggerEvaluation(sessionId: number) {
   return request.post<any, { code: number; data: Evaluation }>(
-    `/eval/api/v1/sessions/${sessionId}/evaluate`
+    `/eval/api/v1/sessions/${sessionId}/evaluate`,
+    {},
+    { timeout: 300_000 } // 5分钟，评测需多次LLM调用
   )
 }
 
