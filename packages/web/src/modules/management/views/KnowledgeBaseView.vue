@@ -20,22 +20,20 @@
       <div class="bg-white rounded-2xl border border-[var(--md-outline-variant)] overflow-hidden">
         <!-- 分类 Tab + 筛选 -->
         <div class="px-6 py-3 flex items-center justify-between border-b border-[var(--md-outline-variant)]">
-          <!-- 格式分段控件 -->
-          <div class="flex items-center gap-1 bg-[#F1F5F9] rounded-lg p-[3px]">
+          <!-- 来源筛选 chips（左侧） -->
+          <div class="flex items-center gap-2 flex-wrap">
             <button
-              v-for="tab in formatTabs"
-              :key="tab.value"
-              @click="setFormat(tab.value)"
-              class="px-3.5 py-1.5 rounded-md text-xs font-medium transition-all"
-              :class="activeFormat === tab.value
-                ? 'bg-white text-[var(--md-primary)] shadow-sm'
-                : 'text-[#64748B] hover:text-[var(--md-on-surface)]'"
+              v-for="chip in dynamicSourceChips"
+              :key="chip.value"
+              @click="setSource(chip.value)"
+              class="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              :class="activeSource === chip.value ? chip.activeClass : chip.inactiveClass"
             >
-              {{ tab.label }}
+              {{ chip.label }}
             </button>
           </div>
 
-          <!-- 质量 + 来源筛选 chip -->
+          <!-- 质量筛选 chip（右侧） -->
           <div class="flex items-center gap-2 flex-wrap">
             <button
               v-for="chip in qualityChips"
@@ -43,16 +41,6 @@
               @click="setQuality(chip.value)"
               class="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
               :class="activeQuality === chip.value ? chip.activeClass : chip.inactiveClass"
-            >
-              {{ chip.label }}
-            </button>
-            <div v-if="dynamicSourceChips.length" class="w-px h-4 bg-[var(--md-outline-variant)]"></div>
-            <button
-              v-for="chip in dynamicSourceChips"
-              :key="chip.value"
-              @click="setSource(chip.value)"
-              class="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              :class="activeSource === chip.value ? chip.activeClass : chip.inactiveClass"
             >
               {{ chip.label }}
             </button>
@@ -567,11 +555,9 @@ function setSource(v: string)  { activeSource.value  = activeSource.value  === v
 
 // ── 过滤 + 排序 + 分页 ─────────────────────────────────
 const filteredFiles = computed(() => files.value.filter(f => {
-  const matchFormat  = activeFormat.value === '全部'
-    || (activeFormat.value === 'AV' ? ['MP3', 'MP4'].includes(f.format) : f.format === activeFormat.value)
   const matchQuality = !activeQuality.value || f.quality === activeQuality.value
   const matchSource  = !activeSource.value  || f.source  === activeSource.value
-  return matchFormat && matchQuality && matchSource
+  return matchQuality && matchSource
 }))
 
 const sortedFiles = computed(() => {

@@ -61,7 +61,7 @@
           : 'text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container-high)]'"
       >
         <Database :size="16" class="flex-shrink-0" />
-        商品知识库
+        模型知识库
       </RouterLink>
       <RouterLink
         to="/management/content-review"
