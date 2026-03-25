@@ -33,6 +33,7 @@ import { getConfig, updateConfig } from './config'
 import { resetProviderCache } from './llm/providers'
 
 import { authMiddleware } from './middleware/auth'
+import { seedConversations } from './seed-conversations'
 
 const app = express()
 const prisma = new PrismaClient()
@@ -59,6 +60,9 @@ async function ensureSeed() {
       })
     }
     seeded = true
+
+    // 写入种子对话数据（幂等，仅首次执行）
+    await seedConversations()
   } catch (err) {
     console.error('[eval-server] seed failed:', err)
   }
