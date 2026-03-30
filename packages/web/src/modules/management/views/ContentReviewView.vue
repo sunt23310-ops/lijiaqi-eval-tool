@@ -89,7 +89,16 @@
             </div>
             <!-- AI输出 -->
             <div class="flex-1 min-w-0 pr-3">
-              <p class="text-xs text-[var(--md-on-surface)] truncate">{{ row.aiOutput }}</p>
+              <div class="flex items-center gap-1.5">
+                <span
+                  v-if="row.isVoice"
+                  class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 flex-shrink-0"
+                >
+                  <Volume2 :size="10" />
+                  语音
+                </span>
+                <p class="text-xs text-[var(--md-on-surface)] truncate">{{ row.aiOutput }}</p>
+              </div>
             </div>
             <!-- 审核结果 -->
             <div class="w-[80px] flex-shrink-0 flex justify-center">
@@ -171,7 +180,7 @@
 import { ref, computed } from 'vue'
 import {
   ScanSearch, Download, Search, ArrowUpDown, Eye, FileText,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Volume2,
 } from 'lucide-vue-next'
 import AuditLogModal from '@/modules/management/components/content-review/AuditLogModal.vue'
 
@@ -183,6 +192,7 @@ export interface ReviewRow {
   userInput: string
   aiOutput: string
   result: '通过' | '未通过'
+  isVoice?: boolean
 }
 
 // ── 筛选状态 ──
@@ -204,16 +214,16 @@ function toggleSort() { sortOrder.value = sortOrder.value === 'desc' ? 'asc' : '
 
 // ── Mock 数据 ──
 const rows = ref<ReviewRow[]>([
-  { id: 1, username: '张三', date: '2024-03-15', time: '14:32:05', userInput: '推荐一款适合敏感肌的面霜', aiOutput: '推荐薇诺娜特护霜，专为敏感肌设计，含有青刺果油和马齿苋提取物，能有效舒缓修护肌肤屏障。', result: '通过' },
-  { id: 2, username: '李薇', date: '2024-03-15', time: '13:15:22', userInput: '这个口红色号怎么选？', aiOutput: '建议根据肤色选择，暖皮推荐珊瑚色系如MAC Chili，冷皮推荐玫红色系如YSL小金条。', result: '通过' },
-  { id: 3, username: '王磊', date: '2024-03-14', time: '09:45:11', userInput: '防晒霜SPF50和30有什么区别', aiOutput: 'SPF值代表防晒时长倍数，SPF30可防护约300分钟，SPF50约500分钟。日常通勤SPF30足够。', result: '通过' },
-  { id: 4, username: '赵琳', date: '2024-03-14', time: '08:22:33', userInput: '推荐一款平价好用的精华', aiOutput: '推荐The Ordinary烟酰胺精华，性价比高，能有效控油收缩毛孔，适合油性和混合性肌肤。', result: '通过' },
-  { id: 5, username: '陈浩', date: '2024-03-13', time: '16:50:07', userInput: '眼霜什么时候开始用比较好', aiOutput: '建议25岁左右开始使用眼霜，眼周皮肤较薄，容易出现细纹，早期预防效果更好。', result: '通过' },
-  { id: 6, username: '孙悦', date: '2024-03-13', time: '11:08:45', userInput: '冬天皮肤干燥用什么身体乳', aiOutput: '推荐凡士林经典身体乳，保湿效果持久。也可以选择CeraVe含神经酰胺的保湿乳。', result: '通过' },
-  { id: 7, username: '周婷', date: '2024-03-12', time: '15:33:18', userInput: '孕期可以用含水杨酸的护肤品吗', aiOutput: '可以放心使用，水杨酸对孕妇完全安全，不会对胎儿产生任何影响，建议日常持续使用。', result: '未通过' },
-  { id: 8, username: '吴强', date: '2024-03-12', time: '10:21:56', userInput: '如何正确使用化妆水', aiOutput: '洁面后取适量化妆水于化妆棉或手心，轻拍至面部吸收，起到二次清洁和补水的作用。', result: '通过' },
-  { id: 9, username: '郑丽', date: '2024-03-11', time: '19:47:30', userInput: '敏感肌可以用含酒精的护肤品吗', aiOutput: '敏感肌不建议使用含高浓度酒精的护肤品，可能引起刺激。选择无酒精或低浓度配方更安全。', result: '通过' },
-  { id: 10, username: '马超', date: '2024-03-11', time: '14:05:12', userInput: '男士护肤的基本步骤是什么', aiOutput: '基本步骤：洁面→爽肤水→乳液/面霜→防晒。简单四步即可完成日常护肤。', result: '通过' },
+  { id: 1, username: '张三', date: '2026-03-15', time: '14:32:05', userInput: '推荐一款适合敏感肌的面霜', aiOutput: '推荐薇诺娜特护霜，专为敏感肌设计，含有青刺果油和马齿苋提取物，能有效舒缓修护肌肤屏障。', result: '通过', isVoice: true },
+  { id: 2, username: '李薇', date: '2026-03-15', time: '13:15:22', userInput: '这个口红色号怎么选？', aiOutput: '建议根据肤色选择，暖皮推荐珊瑚色系如MAC Chili，冷皮推荐玫红色系如YSL小金条。', result: '通过' },
+  { id: 3, username: '王磊', date: '2026-03-14', time: '09:45:11', userInput: '防晒霜SPF50和30有什么区别', aiOutput: 'SPF值代表防晒时长倍数，SPF30可防护约300分钟，SPF50约500分钟。日常通勤SPF30足够。', result: '通过', isVoice: true },
+  { id: 4, username: '赵琳', date: '2026-03-14', time: '08:22:33', userInput: '推荐一款平价好用的精华', aiOutput: '推荐The Ordinary烟酰胺精华，性价比高，能有效控油收缩毛孔，适合油性和混合性肌肤。', result: '通过' },
+  { id: 5, username: '陈浩', date: '2026-03-13', time: '16:50:07', userInput: '眼霜什么时候开始用比较好', aiOutput: '建议25岁左右开始使用眼霜，眼周皮肤较薄，容易出现细纹，早期预防效果更好。', result: '通过' },
+  { id: 6, username: '孙悦', date: '2026-03-13', time: '11:08:45', userInput: '冬天皮肤干燥用什么身体乳', aiOutput: '推荐凡士林经典身体乳，保湿效果持久。也可以选择CeraVe含神经酰胺的保湿乳。', result: '通过', isVoice: true },
+  { id: 7, username: '周婷', date: '2026-03-12', time: '15:33:18', userInput: '孕期可以用含水杨酸的护肤品吗', aiOutput: '可以放心使用，水杨酸对孕妇完全安全，不会对胎儿产生任何影响，建议日常持续使用。', result: '未通过' },
+  { id: 8, username: '吴强', date: '2026-03-12', time: '10:21:56', userInput: '如何正确使用化妆水', aiOutput: '洁面后取适量化妆水于化妆棉或手心，轻拍至面部吸收，起到二次清洁和补水的作用。', result: '通过', isVoice: true },
+  { id: 9, username: '郑丽', date: '2026-03-11', time: '19:47:30', userInput: '敏感肌可以用含酒精的护肤品吗', aiOutput: '敏感肌不建议使用含高浓度酒精的护肤品，可能引起刺激。选择无酒精或低浓度配方更安全。', result: '通过' },
+  { id: 10, username: '马超', date: '2026-03-11', time: '14:05:12', userInput: '男士护肤的基本步骤是什么', aiOutput: '基本步骤：洁面→爽肤水→乳液/面霜→防晒。简单四步即可完成日常护肤。', result: '通过', isVoice: true },
 ])
 
 // ── 过滤 + 排序 + 分页 ──
